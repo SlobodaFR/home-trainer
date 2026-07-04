@@ -1,0 +1,46 @@
+{
+  "name": "trainer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Strength & mobility training app — goal-driven planning, session execution, LLM progress analysis",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run start:dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build:backend": "npm run build --workspace=backend",
+    "build": "npm run build:frontend && npm run build:backend",
+    "test:backend": "npm run test --workspace=backend",
+    "test:frontend": "npm run test --workspace=frontend",
+    "test": "npm run test:backend && npm run test:frontend",
+    "lint": "npm run lint --workspace=backend && npm run lint --workspace=frontend",
+    "format": "prettier --write .",
+    "prepare": "husky"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "lint-staged": {
+    "backend/src/**/*.ts": [
+      "eslint --fix --config backend/eslint.config.mjs",
+      "prettier --write"
+    ],
+    "frontend/src/**/*.{ts,tsx}": [
+      "eslint --fix --config frontend/eslint.config.mjs",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "prettier": "^3.5.3"
+  }
+}
