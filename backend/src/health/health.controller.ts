@@ -1,13 +1,8 @@
-import {
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Res,
-} from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { DataSource } from 'typeorm';
+import { Public } from '../interfaces/http/decorators/public.decorator';
 
 interface HealthResponse {
   status: 'ok';
@@ -19,6 +14,7 @@ interface HealthResponse {
 export class HealthController {
   constructor(private readonly dataSource: DataSource) {}
 
+  @Public()
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Health check — API and database status' })
