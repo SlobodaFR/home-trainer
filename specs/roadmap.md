@@ -57,7 +57,7 @@
 **Depends on**: F-003
 **Delivers**: `Goal`, `Session`, `SessionExercise` entities, rule-based planning service (equipment + schedule aware), `POST /goals`, `GET /sessions` (upcoming), `POST /sessions/:id/replan`
 **Estimated size**: M
-**Status**: Not started
+**Status**: Complete
 
 ---
 

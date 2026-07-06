@@ -9,9 +9,13 @@ import { AuthModule } from './auth/auth.module';
 import { ExerciseModule } from './exercise/exercise.module';
 import { HealthModule } from './health/health.module';
 import { ExerciseOrmEntity } from './infrastructure/persistence/entities/exercise.orm-entity';
+import { GoalOrmEntity } from './infrastructure/persistence/entities/goal.orm-entity';
 import { RevokedSessionOrmEntity } from './infrastructure/persistence/entities/revoked-session.orm-entity';
+import { SessionExerciseOrmEntity } from './infrastructure/persistence/entities/session-exercise.orm-entity';
+import { SessionOrmEntity } from './infrastructure/persistence/entities/session.orm-entity';
 import { UserExerciseOrmEntity } from './infrastructure/persistence/entities/user-exercise.orm-entity';
 import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-entity';
+import { PlanningModule } from './planning/planning.module';
 
 @Module({
   imports: [
@@ -40,6 +44,9 @@ import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-en
           RevokedSessionOrmEntity,
           ExerciseOrmEntity,
           UserExerciseOrmEntity,
+          GoalOrmEntity,
+          SessionOrmEntity,
+          SessionExerciseOrmEntity,
         ],
         synchronize: true,
       }),
@@ -55,6 +62,7 @@ import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-en
     HealthModule,
     AuthModule,
     ExerciseModule,
+    PlanningModule,
   ],
 })
 export class AppModule implements NestModule {
