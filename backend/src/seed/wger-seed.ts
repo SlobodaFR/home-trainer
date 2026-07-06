@@ -93,7 +93,10 @@ async function main(): Promise<void> {
     const data = await fetchJson<WgerListResponse<WgerExercise>>(url);
 
     const batch = data.results
-      .filter((ex) => ex.name != null && ex.name.trim().length > 0)
+      .filter(
+        (ex): ex is WgerExercise & { name: string } =>
+          ex.name != null && ex.name.trim().length > 0,
+      )
       .map((ex) => {
         const entity = new ExerciseOrmEntity();
         entity.wgerId = ex.id;
