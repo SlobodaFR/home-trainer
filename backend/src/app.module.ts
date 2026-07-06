@@ -42,7 +42,7 @@ import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-en
       ? [
           ServeStaticModule.forRoot({
             rootPath: join(__dirname, '..', 'public'),
-            exclude: ['/api/(.*)'],
+            exclude: ['/api/*path'],
           }),
         ]
       : []),
