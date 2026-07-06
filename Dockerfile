@@ -32,7 +32,8 @@ WORKDIR /app
 COPY --from=backend-build /app/node_modules node_modules
 COPY --from=backend-build /app/backend/dist backend/dist
 COPY --from=backend-build /app/backend/package.json backend/package.json
-RUN mkdir -p /app/backend/data
+COPY backend/entrypoint.sh backend/entrypoint.sh
+RUN mkdir -p /app/backend/data && chmod +x /app/backend/entrypoint.sh
 EXPOSE 3000
 WORKDIR /app/backend
-CMD ["node", "dist/main.js"]
+CMD ["sh", "entrypoint.sh"]

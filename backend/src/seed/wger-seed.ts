@@ -65,6 +65,15 @@ async function main(): Promise<void> {
   await dataSource.initialize();
   const repo = dataSource.getRepository(ExerciseOrmEntity);
 
+  const count = await repo.count();
+  if (count > 0) {
+    console.log(
+      `[wger-seed] ${String(count)} exercises already present — skipping.`,
+    );
+    await dataSource.destroy();
+    return;
+  }
+
   console.log('[wger-seed] Fetching muscle and equipment maps…');
   const [muscleMap, equipmentMap] = await Promise.all([
     buildMuscleMap(),
