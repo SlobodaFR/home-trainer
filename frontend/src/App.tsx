@@ -1,8 +1,12 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { RequireAuth } from './presentation/auth/RequireAuth';
 import { ExerciseDetailPage } from './presentation/exercises/ExerciseDetailPage';
 import { ExercisesPage } from './presentation/exercises/ExercisesPage';
 import { LoginPage } from './presentation/pages/LoginPage';
+import { DashboardPage } from './presentation/planning/DashboardPage';
+import { GoalFormPage } from './presentation/planning/GoalFormPage';
+import { SessionDetailPage } from './presentation/planning/SessionDetailPage';
+import { NavBar } from './presentation/shared/NavBar';
 
 export default function App() {
   return (
@@ -12,11 +16,16 @@ export default function App() {
         path="/*"
         element={
           <RequireAuth>
-            <Routes>
-              <Route index element={<Navigate to="/exercises" replace />} />
-              <Route path="exercises" element={<ExercisesPage />} />
-              <Route path="exercises/:id" element={<ExerciseDetailPage />} />
-            </Routes>
+            <>
+              <NavBar />
+              <Routes>
+                <Route index element={<DashboardPage />} />
+                <Route path="exercises" element={<ExercisesPage />} />
+                <Route path="exercises/:id" element={<ExerciseDetailPage />} />
+                <Route path="goals/new" element={<GoalFormPage />} />
+                <Route path="sessions/:id" element={<SessionDetailPage />} />
+              </Routes>
+            </>
           </RequireAuth>
         }
       />
