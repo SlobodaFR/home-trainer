@@ -34,7 +34,7 @@ jobs:
           AUTH_CLIENT_SECRET: op://TECH/thomassloboda_home_secrets/TRAINER_AUTH_SECRET
           AUTH_WEBHOOK_SECRET: op://TECH/thomassloboda_home_secrets/TRAINER_AUTH_WEBHOOK_SECRET
           FRONTEND_URL: op://TECH/thomassloboda_home_secrets/TRAINER_FRONTEND_URL
-          DATABASE_URL: op://TECH/thomassloboda_home_secrets/TRAINER_DATABASE_URL
+          DATABASE_URL: op://TECH/thomassloboda_home_secrets/TRAINER_DATABASE_PATH
           GHCR_PAT: op://TECH/thomassloboda_home_secrets/GITHUB_PAT_FULL_ACCESS
 
       - name: Normalize VPS_SSH_KEY
