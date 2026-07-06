@@ -6,7 +6,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import cookieParser from 'cookie-parser';
 import * as Joi from 'joi';
 import { AuthModule } from './auth/auth.module';
+import { ExerciseModule } from './exercise/exercise.module';
 import { HealthModule } from './health/health.module';
+import { ExerciseOrmEntity } from './infrastructure/persistence/entities/exercise.orm-entity';
 import { RevokedSessionOrmEntity } from './infrastructure/persistence/entities/revoked-session.orm-entity';
 import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-entity';
 
@@ -32,7 +34,7 @@ import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-en
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         url: config.get<string>('DATABASE_URL'),
-        entities: [UserOrmEntity, RevokedSessionOrmEntity],
+        entities: [UserOrmEntity, RevokedSessionOrmEntity, ExerciseOrmEntity],
         migrations: [join(__dirname, '..', 'migrations', '*.js')],
         synchronize: config.get<string>('NODE_ENV') !== 'production',
         logging: config.get<string>('NODE_ENV') === 'development',
@@ -48,6 +50,7 @@ import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-en
       : []),
     HealthModule,
     AuthModule,
+    ExerciseModule,
   ],
 })
 export class AppModule implements NestModule {

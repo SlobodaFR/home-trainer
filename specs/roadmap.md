@@ -35,7 +35,7 @@
 **Depends on**: F-001
 **Delivers**: `Exercise` TypeORM entity, Wger one-time seed script, `GET /exercises` (filter by muscle group + equipment), `GET /exercises/:id`, Everkinetic SVG assets bundled in frontend
 **Estimated size**: M
-**Status**: Not started
+**Status**: Complete
 
 ---
 
