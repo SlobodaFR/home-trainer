@@ -31,7 +31,7 @@ jobs:
           VPS_SSH_KEY: op://TECH/thomassloboda_home_secrets/VPS_PRIVATE_KEY
           AUTH_SERVICE_URL: op://TECH/thomassloboda_home_secrets/AUTH_BASE_URL
           AUTH_CLIENT_ID: op://TECH/thomassloboda_home_secrets/TRAINER_AUTH_CLIENT_ID
-          AUTH_CLIENT_SECRET: op://TECH/thomassloboda_home_secrets/TRAINER_AUTH_CLIENT_SECRET
+          AUTH_CLIENT_SECRET: op://TECH/thomassloboda_home_secrets/TRAINER_AUTH_SECRET
           AUTH_WEBHOOK_SECRET: op://TECH/thomassloboda_home_secrets/TRAINER_AUTH_WEBHOOK_SECRET
           FRONTEND_URL: op://TECH/thomassloboda_home_secrets/TRAINER_FRONTEND_URL
           DATABASE_URL: op://TECH/thomassloboda_home_secrets/TRAINER_DATABASE_URL
