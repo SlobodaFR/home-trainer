@@ -21,6 +21,6 @@ export class UserOrmEntity {
   @Column({ type: 'text', name: 'avatar_url' })
   avatarUrl!: string;
 
-  @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
+  @CreateDateColumn({ type: 'datetime', name: 'created_at' })
   createdAt!: Date;
 }

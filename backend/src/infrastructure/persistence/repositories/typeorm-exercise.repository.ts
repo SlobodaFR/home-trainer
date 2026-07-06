@@ -23,13 +23,13 @@ export class TypeOrmExerciseRepository extends ExerciseRepository {
     const qb = this.repo.createQueryBuilder('exercise');
 
     if (params.muscleGroup) {
-      qb.andWhere(':muscle = ANY(exercise.muscle_groups)', {
+      qb.andWhere(`exercise.muscle_groups LIKE '%"' || :muscle || '"%'`, {
         muscle: params.muscleGroup,
       });
     }
 
     if (params.equipment) {
-      qb.andWhere(':equip = ANY(exercise.equipment)', {
+      qb.andWhere(`exercise.equipment LIKE '%"' || :equip || '"%'`, {
         equip: params.equipment,
       });
     }

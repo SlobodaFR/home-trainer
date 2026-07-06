@@ -19,10 +19,10 @@ export class ExerciseOrmEntity {
   @Column({ type: 'text', default: '' })
   description!: string;
 
-  @Column({ type: 'text', array: true, name: 'muscle_groups', default: '{}' })
+  @Column({ type: 'simple-json', name: 'muscle_groups', default: '[]' })
   muscleGroups!: string[];
 
-  @Column({ type: 'text', array: true, default: '{}' })
+  @Column({ type: 'simple-json', default: '[]' })
   equipment!: string[];
 
   @Column({ type: 'text', name: 'youtube_url', nullable: true })
@@ -31,6 +31,6 @@ export class ExerciseOrmEntity {
   @Column({ type: 'text', name: 'everkinetic_slug', nullable: true })
   everkineticSlug!: string | null;
 
-  @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
+  @CreateDateColumn({ type: 'datetime', name: 'created_at' })
   createdAt!: Date;
 }

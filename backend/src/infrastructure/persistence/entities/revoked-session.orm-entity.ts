@@ -5,6 +5,6 @@ export class RevokedSessionOrmEntity {
   @PrimaryColumn({ type: 'text', name: 'user_id' })
   userId!: string;
 
-  @Column({ type: 'timestamptz', name: 'revoked_at' })
+  @Column({ type: 'datetime', name: 'revoked_at' })
   revokedAt!: Date;
 }
