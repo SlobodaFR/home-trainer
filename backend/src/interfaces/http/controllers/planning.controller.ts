@@ -59,7 +59,10 @@ export class PlanningController {
     @Query('all') all: string,
     @CurrentUser() user: CurrentUserPayload,
   ): Promise<Session[]> {
-    return this.getSessionsUseCase.execute(user.id, all !== 'true');
+    return this.getSessionsUseCase.execute(
+      user.id,
+      all !== 'true' ? 'upcoming' : 'all',
+    );
   }
 
   @Get('sessions/:id')

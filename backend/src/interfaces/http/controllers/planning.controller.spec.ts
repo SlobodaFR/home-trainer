@@ -37,6 +37,8 @@ const mockSession: Session = {
   goalId: 'goal-1',
   plannedDate: '2026-07-07',
   status: 'planned',
+  rpe: null,
+  note: null,
   createdAt: new Date('2026-07-06'),
   exercises: [],
 };
@@ -121,16 +123,16 @@ describe('PlanningController', () => {
   });
 
   describe('getSessions', () => {
-    it('passes onlyPlanned=true when ?all is not "true"', async () => {
+    it('passes statusFilter=upcoming when ?all is not "true"', async () => {
       getSessions.execute.mockResolvedValue([mockSession]);
       await controller.getSessions('', mockUser);
-      expect(getSessions.execute).toHaveBeenCalledWith('user-1', true);
+      expect(getSessions.execute).toHaveBeenCalledWith('user-1', 'upcoming');
     });
 
-    it('passes onlyPlanned=false when ?all=true', async () => {
+    it('passes statusFilter=all when ?all=true', async () => {
       getSessions.execute.mockResolvedValue([mockSession]);
       await controller.getSessions('true', mockUser);
-      expect(getSessions.execute).toHaveBeenCalledWith('user-1', false);
+      expect(getSessions.execute).toHaveBeenCalledWith('user-1', 'all');
     });
   });
 

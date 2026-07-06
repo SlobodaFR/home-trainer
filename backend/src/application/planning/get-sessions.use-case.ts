@@ -6,7 +6,10 @@ import { SessionRepository } from '../../domain/planning/session.repository';
 export class GetSessionsUseCase {
   constructor(private readonly sessionRepository: SessionRepository) {}
 
-  async execute(userId: string, onlyPlanned: boolean): Promise<Session[]> {
-    return this.sessionRepository.findByUser(userId, onlyPlanned);
+  async execute(
+    userId: string,
+    statusFilter: 'upcoming' | 'all',
+  ): Promise<Session[]> {
+    return this.sessionRepository.findByUser(userId, statusFilter);
   }
 }

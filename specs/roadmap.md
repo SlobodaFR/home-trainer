@@ -79,7 +79,7 @@
 **Depends on**: F-005
 **Delivers**: `WorkoutLog` entity, session state machine (`planned → active → paused → completed`), `POST /sessions/:id/start`, `POST /sessions/:id/sets`, `POST /sessions/:id/finish` (with RPE + note)
 **Estimated size**: S
-**Status**: Not started
+**Status**: Complete
 
 ---
 
