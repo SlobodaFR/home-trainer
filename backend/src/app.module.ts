@@ -41,7 +41,7 @@ import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-en
     ...(process.env.NODE_ENV === 'production'
       ? [
           ServeStaticModule.forRoot({
-            rootPath: join(__dirname, '..', 'public'),
+            rootPath: join(__dirname, 'public'),
             exclude: ['/api/*path'],
           }),
         ]
