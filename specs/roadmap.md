@@ -68,7 +68,7 @@
 **Depends on**: F-002, F-005
 **Delivers**: Goal definition form, dashboard with upcoming sessions list, session modification request UI
 **Estimated size**: M
-**Status**: Not started
+**Status**: Complete
 
 ---
 
