@@ -46,7 +46,7 @@
 **Depends on**: F-002, F-003
 **Delivers**: Browse/filter page, exercise detail view (instructions, YouTube embed, Everkinetic SVG), favorites toggle, preference weight input (1–5)
 **Estimated size**: M
-**Status**: Not started
+**Status**: Complete
 
 ---
 

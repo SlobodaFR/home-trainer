@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { GetExercisesUseCase } from './get-exercises.use-case';
 import { Exercise } from '../../domain/exercise/exercise';
 import { ExerciseRepository } from '../../domain/exercise/exercise.repository';
+import { UserExerciseRepository } from '../../domain/exercise/user-exercise.repository';
 
 const mockExercise: Exercise = {
   id: 'ex-1',
@@ -18,6 +19,7 @@ const mockExercise: Exercise = {
 describe('GetExercisesUseCase', () => {
   let useCase: GetExercisesUseCase;
   let exerciseRepository: jest.Mocked<ExerciseRepository>;
+  let userExerciseRepository: jest.Mocked<UserExerciseRepository>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -32,15 +34,20 @@ describe('GetExercisesUseCase', () => {
             findById: jest.fn(),
           },
         },
+        {
+          provide: UserExerciseRepository,
+          useValue: { findByUser: jest.fn().mockResolvedValue([]) },
+        },
       ],
     }).compile();
 
     useCase = module.get(GetExercisesUseCase);
     exerciseRepository = module.get(ExerciseRepository);
+    userExerciseRepository = module.get(UserExerciseRepository);
   });
 
   it('calls findAll with default page and limit when none provided', async () => {
-    const result = await useCase.execute({});
+    const result = await useCase.execute({ userId: 'user-1' });
     expect(exerciseRepository.findAll).toHaveBeenCalledWith({
       page: 1,
       limit: 20,
@@ -48,7 +55,7 @@ describe('GetExercisesUseCase', () => {
       equipment: undefined,
     });
     expect(result).toEqual({
-      data: [mockExercise],
+      data: [{ ...mockExercise, isFavorite: false, preferenceWeight: null }],
       total: 1,
       page: 1,
       limit: 20,
@@ -56,23 +63,40 @@ describe('GetExercisesUseCase', () => {
   });
 
   it('passes muscleGroup filter through to repository', async () => {
-    await useCase.execute({ muscleGroup: 'biceps' });
+    await useCase.execute({ userId: 'user-1', muscleGroup: 'biceps' });
     expect(exerciseRepository.findAll).toHaveBeenCalledWith(
       expect.objectContaining({ muscleGroup: 'biceps' }),
     );
   });
 
   it('passes equipment filter through to repository', async () => {
-    await useCase.execute({ equipment: 'barbell' });
+    await useCase.execute({ userId: 'user-1', equipment: 'barbell' });
     expect(exerciseRepository.findAll).toHaveBeenCalledWith(
       expect.objectContaining({ equipment: 'barbell' }),
     );
   });
 
   it('clamps limit to 100 when value exceeds maximum', async () => {
-    await useCase.execute({ limit: 150 });
+    await useCase.execute({ userId: 'user-1', limit: 150 });
     expect(exerciseRepository.findAll).toHaveBeenCalledWith(
       expect.objectContaining({ limit: 100 }),
     );
+  });
+
+  it('enriches exercises with user favorite and preference data', async () => {
+    userExerciseRepository.findByUser.mockResolvedValue([
+      {
+        userId: 'user-1',
+        exerciseId: 'ex-1',
+        isFavorite: true,
+        preferenceWeight: 4,
+      },
+    ]);
+    const result = await useCase.execute({ userId: 'user-1' });
+    expect(result.data[0]).toMatchObject({
+      id: 'ex-1',
+      isFavorite: true,
+      preferenceWeight: 4,
+    });
   });
 });

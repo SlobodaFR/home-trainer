@@ -1,12 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import { Exercise } from '../../domain/exercise/exercise';
+import { ExerciseWithPreference } from '../../domain/exercise/exercise-with-preference';
 import { ExerciseRepository } from '../../domain/exercise/exercise.repository';
+import { UserExerciseRepository } from '../../domain/exercise/user-exercise.repository';
 
 @Injectable()
 export class GetExerciseByIdUseCase {
-  constructor(private readonly exerciseRepository: ExerciseRepository) {}
+  constructor(
+    private readonly exerciseRepository: ExerciseRepository,
+    private readonly userExerciseRepository: UserExerciseRepository,
+  ) {}
 
-  execute(id: string): Promise<Exercise | null> {
-    return this.exerciseRepository.findById(id);
+  async execute(
+    id: string,
+    userId: string,
+  ): Promise<ExerciseWithPreference | null> {
+    const exercise = await this.exerciseRepository.findById(id);
+    if (!exercise) return null;
+
+    const ue = await this.userExerciseRepository.findByUserAndExercise(
+      userId,
+      id,
+    );
+    return {
+      ...exercise,
+      isFavorite: ue?.isFavorite ?? false,
+      preferenceWeight: ue?.preferenceWeight ?? null,
+    };
   }
 }
