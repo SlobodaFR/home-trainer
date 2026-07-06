@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import { RequireAuth } from './presentation/auth/RequireAuth';
+import { ExecutionPage } from './presentation/execution/ExecutionPage';
 import { ExerciseDetailPage } from './presentation/exercises/ExerciseDetailPage';
 import { ExercisesPage } from './presentation/exercises/ExercisesPage';
 import { LoginPage } from './presentation/pages/LoginPage';
@@ -12,6 +13,14 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/sessions/:id/execute"
+        element={
+          <RequireAuth>
+            <ExecutionPage />
+          </RequireAuth>
+        }
+      />
       <Route
         path="/*"
         element={
