@@ -90,7 +90,7 @@
 **Depends on**: F-006, F-007
 **Delivers**: Execution screen, set/rep/weight logging form, configurable rest timer (visual + audio), pause/resume/stop controls, post-session RPE form, optimistic local state + toast on save failure
 **Estimated size**: M
-**Status**: Not started
+**Status**: Complete
 
 ---
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { startSession } from '../../infrastructure/execution-client';
 import type { Session } from '../../infrastructure/planning-client';
 import {
   getSession,
@@ -27,6 +28,7 @@ export function SessionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [replanning, setReplanning] = useState(false);
+  const [starting, setStarting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -42,6 +44,18 @@ export function SessionDetailPage() {
         setLoading(false);
       });
   }, [id]);
+
+  const handleStart = async () => {
+    if (!id || starting) return;
+    setStarting(true);
+    try {
+      await startSession(id);
+      navigate(`/sessions/${id}/execute`);
+    } catch {
+      showToast('Impossible de démarrer la séance');
+      setStarting(false);
+    }
+  };
 
   const handleReplan = async () => {
     if (!id || replanning) return;
@@ -122,13 +136,38 @@ export function SessionDetailPage() {
         </div>
 
         {session.status === 'planned' && (
+          <div className="flex gap-3">
+            <button
+              type="button"
+              disabled={starting}
+              onClick={() => {
+                void handleStart();
+              }}
+              className="bg-ink text-canvas px-6 py-2 rounded-full text-sm font-medium disabled:opacity-50"
+            >
+              {starting ? '…' : 'Commencer'}
+            </button>
+            <button
+              type="button"
+              disabled={replanning}
+              onClick={() => {
+                void handleReplan();
+              }}
+              className="bg-soft-cloud text-ink px-6 py-2 rounded-full text-sm font-medium disabled:opacity-50"
+            >
+              {replanning ? '…' : 'Replanifier'}
+            </button>
+          </div>
+        )}
+        {(session.status === 'active' || session.status === 'paused') && (
           <button
             type="button"
-            disabled={replanning}
-            onClick={() => void handleReplan()}
-            className="bg-ink text-canvas px-6 py-2 rounded-full text-sm font-medium disabled:opacity-50 self-start"
+            onClick={() => {
+              if (id) navigate(`/sessions/${id}/execute`);
+            }}
+            className="bg-ink text-canvas px-6 py-2 rounded-full text-sm font-medium self-start"
           >
-            {replanning ? '…' : 'Replanifier'}
+            Reprendre
           </button>
         )}
       </div>
