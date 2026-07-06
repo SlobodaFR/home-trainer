@@ -59,7 +59,7 @@ async function main(): Promise<void> {
     type: 'better-sqlite3',
     database: process.env.DATABASE_PATH ?? 'data/trainer.sqlite',
     entities: [ExerciseOrmEntity],
-    synchronize: false,
+    synchronize: true,
   });
 
   await dataSource.initialize();
