@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Exercise } from '../../domain/exercise/exercise';
+import { ExerciseWithPreference } from '../../domain/exercise/exercise-with-preference';
 import { ExerciseRepository } from '../../domain/exercise/exercise.repository';
+import { UserExercise } from '../../domain/exercise/user-exercise';
+import { UserExerciseRepository } from '../../domain/exercise/user-exercise.repository';
 
 export interface GetExercisesParams {
+  userId: string;
   muscleGroup?: string;
   equipment?: string;
   page?: number;
@@ -10,7 +13,7 @@ export interface GetExercisesParams {
 }
 
 export interface PaginatedExercises {
-  data: Exercise[];
+  data: ExerciseWithPreference[];
   total: number;
   page: number;
   limit: number;
@@ -18,7 +21,10 @@ export interface PaginatedExercises {
 
 @Injectable()
 export class GetExercisesUseCase {
-  constructor(private readonly exerciseRepository: ExerciseRepository) {}
+  constructor(
+    private readonly exerciseRepository: ExerciseRepository,
+    private readonly userExerciseRepository: UserExerciseRepository,
+  ) {}
 
   async execute(params: GetExercisesParams): Promise<PaginatedExercises> {
     const page = params.page ?? 1;
@@ -31,6 +37,22 @@ export class GetExercisesUseCase {
       limit,
     });
 
-    return { data, total, page, limit };
+    const userExercises = await this.userExerciseRepository.findByUser(
+      params.userId,
+    );
+    const ueMap = new Map<string, UserExercise>(
+      userExercises.map((ue) => [ue.exerciseId, ue]),
+    );
+
+    const enriched: ExerciseWithPreference[] = data.map((exercise) => {
+      const ue = ueMap.get(exercise.id);
+      return {
+        ...exercise,
+        isFavorite: ue?.isFavorite ?? false,
+        preferenceWeight: ue?.preferenceWeight ?? null,
+      };
+    });
+
+    return { data: enriched, total, page, limit };
   }
 }

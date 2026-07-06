@@ -1,5 +1,7 @@
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { RequireAuth } from './presentation/auth/RequireAuth';
+import { ExerciseDetailPage } from './presentation/exercises/ExerciseDetailPage';
+import { ExercisesPage } from './presentation/exercises/ExercisesPage';
 import { LoginPage } from './presentation/pages/LoginPage';
 
 export default function App() {
@@ -10,11 +12,11 @@ export default function App() {
         path="/*"
         element={
           <RequireAuth>
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-              <h1 className="text-2xl font-semibold text-gray-900">
-                Dashboard
-              </h1>
-            </div>
+            <Routes>
+              <Route index element={<Navigate to="/exercises" replace />} />
+              <Route path="exercises" element={<ExercisesPage />} />
+              <Route path="exercises/:id" element={<ExerciseDetailPage />} />
+            </Routes>
           </RequireAuth>
         }
       />

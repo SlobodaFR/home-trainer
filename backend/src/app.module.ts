@@ -10,6 +10,7 @@ import { ExerciseModule } from './exercise/exercise.module';
 import { HealthModule } from './health/health.module';
 import { ExerciseOrmEntity } from './infrastructure/persistence/entities/exercise.orm-entity';
 import { RevokedSessionOrmEntity } from './infrastructure/persistence/entities/revoked-session.orm-entity';
+import { UserExerciseOrmEntity } from './infrastructure/persistence/entities/user-exercise.orm-entity';
 import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-entity';
 
 @Module({
@@ -34,7 +35,12 @@ import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-en
       useFactory: (config: ConfigService) => ({
         type: 'better-sqlite3',
         database: config.get<string>('DATABASE_PATH', 'data/trainer.sqlite'),
-        entities: [UserOrmEntity, RevokedSessionOrmEntity, ExerciseOrmEntity],
+        entities: [
+          UserOrmEntity,
+          RevokedSessionOrmEntity,
+          ExerciseOrmEntity,
+          UserExerciseOrmEntity,
+        ],
         synchronize: true,
       }),
     }),
