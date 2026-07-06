@@ -56,8 +56,8 @@ async function buildEquipmentMap(): Promise<Map<number, string>> {
 
 async function main(): Promise<void> {
   const dataSource = new DataSource({
-    type: 'postgres',
-    url: process.env.DATABASE_URL,
+    type: 'better-sqlite3',
+    database: process.env.DATABASE_PATH ?? 'data/trainer.sqlite',
     entities: [ExerciseOrmEntity],
     synchronize: false,
   });

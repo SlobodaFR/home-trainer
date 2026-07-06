@@ -34,7 +34,7 @@ jobs:
           AUTH_CLIENT_SECRET: op://TECH/thomassloboda_home_secrets/TRAINER_AUTH_SECRET
           AUTH_WEBHOOK_SECRET: op://TECH/thomassloboda_home_secrets/TRAINER_AUTH_WEBHOOK_SECRET
           FRONTEND_URL: op://TECH/thomassloboda_home_secrets/TRAINER_FRONTEND_URL
-          DATABASE_URL: op://TECH/thomassloboda_home_secrets/TRAINER_DATABASE_PATH
+          DATABASE_PATH: op://TECH/thomassloboda_home_secrets/TRAINER_DATABASE_PATH
           GHCR_PAT: op://TECH/thomassloboda_home_secrets/GITHUB_PAT_FULL_ACCESS
 
       - name: Normalize VPS_SSH_KEY
@@ -66,13 +66,13 @@ jobs:
           host: ${{ env.VPS_HOST }}
           username: ${{ env.VPS_USER }}
           key: ${{ env.VPS_SSH_KEY }}
-          envs: AUTH_SERVICE_URL,AUTH_CLIENT_ID,AUTH_CLIENT_SECRET,AUTH_WEBHOOK_SECRET,FRONTEND_URL,DATABASE_URL
+          envs: AUTH_SERVICE_URL,AUTH_CLIENT_ID,AUTH_CLIENT_SECRET,AUTH_WEBHOOK_SECRET,FRONTEND_URL,DATABASE_PATH
           script: |
             mkdir -p /opt/trainer/deploy
             cat > /opt/trainer/deploy/.env <<EOF
             NODE_ENV=production
             PORT=3000
-            DATABASE_URL=$DATABASE_URL
+            DATABASE_PATH=$DATABASE_PATH
             AUTH_SERVICE_URL=$AUTH_SERVICE_URL
             AUTH_CLIENT_ID=$AUTH_CLIENT_ID
             AUTH_CLIENT_SECRET=$AUTH_CLIENT_SECRET

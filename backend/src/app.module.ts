@@ -17,7 +17,7 @@ import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-en
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema: Joi.object({
-        DATABASE_URL: Joi.string().required(),
+        DATABASE_PATH: Joi.string().default('data/trainer.sqlite'),
         FRONTEND_URL: Joi.string().default('http://localhost:5173'),
         PORT: Joi.number().default(3000),
         NODE_ENV: Joi.string()
@@ -32,12 +32,10 @@ import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-en
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        url: config.get<string>('DATABASE_URL'),
+        type: 'better-sqlite3',
+        database: config.get<string>('DATABASE_PATH', 'data/trainer.sqlite'),
         entities: [UserOrmEntity, RevokedSessionOrmEntity, ExerciseOrmEntity],
-        migrations: [join(__dirname, '..', 'migrations', '*.js')],
-        synchronize: config.get<string>('NODE_ENV') !== 'production',
-        logging: config.get<string>('NODE_ENV') === 'development',
+        synchronize: true,
       }),
     }),
     ...(process.env.NODE_ENV === 'production'
