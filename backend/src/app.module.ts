@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import cookieParser from 'cookie-parser';
 import * as Joi from 'joi';
 import { AuthModule } from './auth/auth.module';
+import { ExecutionModule } from './execution/execution.module';
 import { ExerciseModule } from './exercise/exercise.module';
 import { HealthModule } from './health/health.module';
 import { ExerciseOrmEntity } from './infrastructure/persistence/entities/exercise.orm-entity';
@@ -15,6 +16,7 @@ import { SessionExerciseOrmEntity } from './infrastructure/persistence/entities/
 import { SessionOrmEntity } from './infrastructure/persistence/entities/session.orm-entity';
 import { UserExerciseOrmEntity } from './infrastructure/persistence/entities/user-exercise.orm-entity';
 import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-entity';
+import { WorkoutLogOrmEntity } from './infrastructure/persistence/entities/workout-log.orm-entity';
 import { PlanningModule } from './planning/planning.module';
 
 @Module({
@@ -47,6 +49,7 @@ import { PlanningModule } from './planning/planning.module';
           GoalOrmEntity,
           SessionOrmEntity,
           SessionExerciseOrmEntity,
+          WorkoutLogOrmEntity,
         ],
         synchronize: true,
       }),
@@ -63,6 +66,7 @@ import { PlanningModule } from './planning/planning.module';
     AuthModule,
     ExerciseModule,
     PlanningModule,
+    ExecutionModule,
   ],
 })
 export class AppModule implements NestModule {

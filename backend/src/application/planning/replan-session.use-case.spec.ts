@@ -29,6 +29,8 @@ const makeSession = (status: Session['status']): Session => ({
   goalId: 'goal-1',
   plannedDate: '2026-07-07',
   status,
+  rpe: null,
+  note: null,
   createdAt: new Date('2026-07-06'),
   exercises: [],
 });

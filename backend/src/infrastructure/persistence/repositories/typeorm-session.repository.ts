@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Session } from '../../../domain/planning/session';
 import { SessionExercise } from '../../../domain/planning/session-exercise';
 import {
@@ -22,9 +22,16 @@ export class TypeOrmSessionRepository extends SessionRepository {
     super();
   }
 
-  async findByUser(userId: string, onlyPlanned: boolean): Promise<Session[]> {
+  async findByUser(
+    userId: string,
+    statusFilter: 'upcoming' | 'all',
+  ): Promise<Session[]> {
+    const where =
+      statusFilter === 'upcoming'
+        ? { userId, status: In(['planned', 'active', 'paused']) }
+        : { userId };
     const entities = await this.sessionRepo.find({
-      where: { userId, ...(onlyPlanned ? { status: 'planned' } : {}) },
+      where,
       order: { plannedDate: 'ASC' },
     });
     return entities.map((e) => this.toDomain(e, []));
@@ -89,6 +96,24 @@ export class TypeOrmSessionRepository extends SessionRepository {
     return updated;
   }
 
+  async updateStatus(id: string, status: Session['status']): Promise<Session> {
+    await this.sessionRepo.update(id, { status });
+    const updated = await this.findById(id);
+    if (!updated) throw new Error(`Session ${id} not found after updateStatus`);
+    return updated;
+  }
+
+  async saveOutcome(
+    id: string,
+    rpe: number | null,
+    note: string | null,
+  ): Promise<Session> {
+    await this.sessionRepo.update(id, { rpe, note });
+    const updated = await this.findById(id);
+    if (!updated) throw new Error(`Session ${id} not found after saveOutcome`);
+    return updated;
+  }
+
   private toDomain(
     entity: SessionOrmEntity,
     exerciseEntities: SessionExerciseOrmEntity[],
@@ -99,6 +124,8 @@ export class TypeOrmSessionRepository extends SessionRepository {
       goalId: entity.goalId,
       plannedDate: entity.plannedDate,
       status: entity.status as Session['status'],
+      rpe: entity.rpe,
+      note: entity.note,
       createdAt: entity.createdAt,
       exercises: exerciseEntities.map((e): SessionExercise => ({
         id: e.id,

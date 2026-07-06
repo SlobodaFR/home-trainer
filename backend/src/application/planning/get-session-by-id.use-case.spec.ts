@@ -9,6 +9,8 @@ const mockSession: Session = {
   goalId: 'goal-1',
   plannedDate: '2026-07-07',
   status: 'planned',
+  rpe: null,
+  note: null,
   createdAt: new Date('2026-07-06'),
   exercises: [],
 };

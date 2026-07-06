@@ -9,6 +9,8 @@ const mockSession: Session = {
   goalId: 'goal-1',
   plannedDate: '2026-07-07',
   status: 'planned',
+  rpe: null,
+  note: null,
   createdAt: new Date('2026-07-06'),
   exercises: [],
 };
@@ -33,17 +35,20 @@ describe('GetSessionsUseCase', () => {
   });
 
   it('returns sessions from repository', async () => {
-    const result = await useCase.execute('user-1', true);
+    const result = await useCase.execute('user-1', 'upcoming');
     expect(result).toEqual([mockSession]);
   });
 
-  it('passes onlyPlanned=true to repository', async () => {
-    await useCase.execute('user-1', true);
-    expect(sessionRepository.findByUser).toHaveBeenCalledWith('user-1', true);
+  it('passes statusFilter=upcoming to repository', async () => {
+    await useCase.execute('user-1', 'upcoming');
+    expect(sessionRepository.findByUser).toHaveBeenCalledWith(
+      'user-1',
+      'upcoming',
+    );
   });
 
-  it('passes onlyPlanned=false to repository when all sessions requested', async () => {
-    await useCase.execute('user-1', false);
-    expect(sessionRepository.findByUser).toHaveBeenCalledWith('user-1', false);
+  it('passes statusFilter=all to repository when all sessions requested', async () => {
+    await useCase.execute('user-1', 'all');
+    expect(sessionRepository.findByUser).toHaveBeenCalledWith('user-1', 'all');
   });
 });
