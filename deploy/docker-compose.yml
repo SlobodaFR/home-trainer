@@ -1,0 +1,12 @@
+name: trainer
+
+services:
+  trainer:
+    image: ${IMAGE}:${IMAGE_TAG}
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - '127.0.0.1:3002:3000'
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
