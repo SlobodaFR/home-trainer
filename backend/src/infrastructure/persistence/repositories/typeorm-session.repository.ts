@@ -39,13 +39,11 @@ export class TypeOrmSessionRepository extends SessionRepository {
   }
 
   async deleteByGoalId(goalId: string): Promise<void> {
-    const sessions = await this.sessionRepo.find({
-      where: { goalId },
-      relations: { exercises: true },
-    });
-    if (sessions.length > 0) {
-      await this.sessionRepo.remove(sessions);
-    }
+    const sessions = await this.sessionRepo.find({ where: { goalId } });
+    if (sessions.length === 0) return;
+    const sessionIds = sessions.map((s) => s.id);
+    await this.exerciseRepo.delete({ sessionId: In(sessionIds) });
+    await this.sessionRepo.delete({ goalId });
   }
 
   async findById(id: string): Promise<Session | null> {
