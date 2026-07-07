@@ -9,6 +9,7 @@ import {
   NewSession,
   SessionRepository,
 } from '../../domain/planning/session.repository';
+import { ProfileRepository } from '../../domain/profile/profile.repository';
 
 const mockGoal: Goal = {
   id: 'goal-1',
@@ -62,6 +63,10 @@ describe('CreateGoalUseCase', () => {
           useValue: {
             generateSessions: jest.fn().mockReturnValue([] as NewSession[]),
           },
+        },
+        {
+          provide: ProfileRepository,
+          useValue: { findByUser: jest.fn().mockResolvedValue(null) },
         },
       ],
     }).compile();
@@ -182,6 +187,7 @@ describe('CreateGoalUseCase', () => {
           preferenceWeight: 5,
         }),
       ]),
+      undefined,
     );
   });
 });

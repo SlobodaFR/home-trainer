@@ -10,6 +10,7 @@ import { UserExerciseRepository } from '../../domain/exercise/user-exercise.repo
 import { GoalRepository } from '../../domain/planning/goal.repository';
 import { Session } from '../../domain/planning/session';
 import { SessionRepository } from '../../domain/planning/session.repository';
+import { ProfileRepository } from '../../domain/profile/profile.repository';
 
 @Injectable()
 export class ReplanSessionUseCase {
@@ -19,6 +20,7 @@ export class ReplanSessionUseCase {
     private readonly exerciseRepository: ExerciseRepository,
     private readonly userExerciseRepository: UserExerciseRepository,
     private readonly plannerService: PlannerService,
+    private readonly profileRepository: ProfileRepository,
   ) {}
 
   async execute(sessionId: string, userId: string): Promise<Session> {
@@ -51,9 +53,11 @@ export class ReplanSessionUseCase {
       };
     });
 
+    const profile = await this.profileRepository.findByUser(userId);
     const newExercises = this.plannerService.buildSessionExercises(
       goal,
       enriched,
+      profile?.plannerConfig ?? undefined,
     );
     return this.sessionRepository.replaceExercises(sessionId, newExercises);
   }

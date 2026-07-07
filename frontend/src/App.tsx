@@ -8,6 +8,7 @@ import { DashboardPage } from './presentation/planning/DashboardPage';
 import { GoalFormPage } from './presentation/planning/GoalFormPage';
 import { HistoryPage } from './presentation/planning/HistoryPage';
 import { SessionDetailPage } from './presentation/planning/SessionDetailPage';
+import { AssessmentPage } from './presentation/profile/AssessmentPage';
 import { AnalysisBanner } from './presentation/shared/AnalysisBanner';
 import { AnalysisProvider } from './presentation/shared/AnalysisContext';
 import { NavBar } from './presentation/shared/NavBar';
@@ -40,6 +41,7 @@ export default function App() {
                     element={<ExerciseDetailPage />}
                   />
                   <Route path="goals/new" element={<GoalFormPage />} />
+                  <Route path="assessment" element={<AssessmentPage />} />
                   <Route path="history" element={<HistoryPage />} />
                   <Route path="sessions/:id" element={<SessionDetailPage />} />
                 </Routes>

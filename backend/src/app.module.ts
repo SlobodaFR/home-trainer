@@ -17,9 +17,11 @@ import { SessionAnalysisOrmEntity } from './infrastructure/persistence/entities/
 import { SessionExerciseOrmEntity } from './infrastructure/persistence/entities/session-exercise.orm-entity';
 import { SessionOrmEntity } from './infrastructure/persistence/entities/session.orm-entity';
 import { UserExerciseOrmEntity } from './infrastructure/persistence/entities/user-exercise.orm-entity';
+import { UserFitnessProfileOrmEntity } from './infrastructure/persistence/entities/user-fitness-profile.orm-entity';
 import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-entity';
 import { WorkoutLogOrmEntity } from './infrastructure/persistence/entities/workout-log.orm-entity';
 import { PlanningModule } from './planning/planning.module';
+import { ProfileModule } from './profile/profile.module';
 
 @Module({
   imports: [
@@ -55,6 +57,7 @@ import { PlanningModule } from './planning/planning.module';
           SessionExerciseOrmEntity,
           WorkoutLogOrmEntity,
           SessionAnalysisOrmEntity,
+          UserFitnessProfileOrmEntity,
         ],
         synchronize: true,
       }),
@@ -73,6 +76,7 @@ import { PlanningModule } from './planning/planning.module';
     PlanningModule,
     ExecutionModule,
     AnalysisModule,
+    ProfileModule,
   ],
 })
 export class AppModule implements NestModule {

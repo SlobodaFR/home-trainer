@@ -7,6 +7,7 @@ import {
   getActiveGoal,
   listSessions,
 } from '../../infrastructure/planning-client';
+import { ProfileMissingBanner } from '../shared/ProfileMissingBanner';
 
 function formatDate(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);
@@ -80,6 +81,7 @@ export function DashboardPage() {
   return (
     <div className="min-h-screen bg-soft-cloud">
       <div className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-6">
+        <ProfileMissingBanner />
         <h1 className="text-2xl font-medium text-ink">Tableau de bord</h1>
 
         {/* Goal panel */}
