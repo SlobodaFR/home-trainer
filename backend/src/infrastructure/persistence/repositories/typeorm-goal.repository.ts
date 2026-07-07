@@ -39,6 +39,10 @@ export class TypeOrmGoalRepository extends GoalRepository {
     await this.repo.update({ userId }, { isActive: 0 });
   }
 
+  async delete(id: string, userId: string): Promise<void> {
+    await this.repo.delete({ id, userId });
+  }
+
   private toDomain(entity: GoalOrmEntity): Goal {
     return {
       id: entity.id,

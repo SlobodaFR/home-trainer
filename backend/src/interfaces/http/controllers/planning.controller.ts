@@ -1,13 +1,16 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   NotFoundException,
   Param,
   Post,
   Query,
 } from '@nestjs/common';
 import { CreateGoalUseCase } from '../../../application/planning/create-goal.use-case';
+import { DeleteGoalUseCase } from '../../../application/planning/delete-goal.use-case';
 import { GetActiveGoalUseCase } from '../../../application/planning/get-active-goal.use-case';
 import { GetSessionByIdUseCase } from '../../../application/planning/get-session-by-id.use-case';
 import { GetSessionsUseCase } from '../../../application/planning/get-sessions.use-case';
@@ -24,6 +27,7 @@ import { CreateGoalDto } from '../dto/create-goal.dto';
 export class PlanningController {
   constructor(
     private readonly createGoalUseCase: CreateGoalUseCase,
+    private readonly deleteGoalUseCase: DeleteGoalUseCase,
     private readonly getActiveGoalUseCase: GetActiveGoalUseCase,
     private readonly getSessionsUseCase: GetSessionsUseCase,
     private readonly getSessionByIdUseCase: GetSessionByIdUseCase,
@@ -45,6 +49,15 @@ export class PlanningController {
       availableEquipment: dto.availableEquipment,
       activeFrom,
     });
+  }
+
+  @Delete('goals/:id')
+  @HttpCode(204)
+  async deleteGoal(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ): Promise<void> {
+    await this.deleteGoalUseCase.execute(id, user.id);
   }
 
   @Get('goals/active')

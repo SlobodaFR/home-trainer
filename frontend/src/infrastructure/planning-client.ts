@@ -82,6 +82,10 @@ export function getSession(id: string): Promise<Session> {
   return request<Session>(`${BASE_SESSIONS}/${id}`);
 }
 
+export function deleteGoal(id: string): Promise<void> {
+  return request<undefined>(`${BASE_GOALS}/${id}`, { method: 'DELETE' });
+}
+
 export function replanSession(id: string): Promise<Session> {
   return request<Session>(`${BASE_SESSIONS}/${id}/replan`, { method: 'POST' });
 }

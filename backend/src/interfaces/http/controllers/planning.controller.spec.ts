@@ -2,6 +2,7 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PlanningController } from './planning.controller';
 import { CreateGoalUseCase } from '../../../application/planning/create-goal.use-case';
+import { DeleteGoalUseCase } from '../../../application/planning/delete-goal.use-case';
 import { GetActiveGoalUseCase } from '../../../application/planning/get-active-goal.use-case';
 import { GetSessionByIdUseCase } from '../../../application/planning/get-session-by-id.use-case';
 import { GetSessionsUseCase } from '../../../application/planning/get-sessions.use-case';
@@ -46,6 +47,7 @@ const mockSession: Session = {
 describe('PlanningController', () => {
   let controller: PlanningController;
   let createGoal: jest.Mocked<CreateGoalUseCase>;
+  let deleteGoal: jest.Mocked<DeleteGoalUseCase>;
   let getActiveGoal: jest.Mocked<GetActiveGoalUseCase>;
   let getSessions: jest.Mocked<GetSessionsUseCase>;
   let getSessionById: jest.Mocked<GetSessionByIdUseCase>;
@@ -56,6 +58,7 @@ describe('PlanningController', () => {
       controllers: [PlanningController],
       providers: [
         { provide: CreateGoalUseCase, useValue: { execute: jest.fn() } },
+        { provide: DeleteGoalUseCase, useValue: { execute: jest.fn() } },
         { provide: GetActiveGoalUseCase, useValue: { execute: jest.fn() } },
         { provide: GetSessionsUseCase, useValue: { execute: jest.fn() } },
         { provide: GetSessionByIdUseCase, useValue: { execute: jest.fn() } },
@@ -65,6 +68,7 @@ describe('PlanningController', () => {
 
     controller = module.get(PlanningController);
     createGoal = module.get(CreateGoalUseCase);
+    deleteGoal = module.get(DeleteGoalUseCase);
     getActiveGoal = module.get(GetActiveGoalUseCase);
     getSessions = module.get(GetSessionsUseCase);
     getSessionById = module.get(GetSessionByIdUseCase);
@@ -146,6 +150,23 @@ describe('PlanningController', () => {
     it('throws NotFoundException when session not found', async () => {
       getSessionById.execute.mockResolvedValue(null);
       await expect(controller.getSession('unknown', mockUser)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('deleteGoal', () => {
+    it('calls use case with goal id and user id', async () => {
+      deleteGoal.execute.mockResolvedValue(undefined);
+      await controller.deleteGoal('goal-1', mockUser);
+      expect(deleteGoal.execute).toHaveBeenCalledWith('goal-1', 'user-1');
+    });
+
+    it('propagates NotFoundException from use case', async () => {
+      deleteGoal.execute.mockRejectedValue(
+        new NotFoundException('Goal not found'),
+      );
+      await expect(controller.deleteGoal('unknown', mockUser)).rejects.toThrow(
         NotFoundException,
       );
     });

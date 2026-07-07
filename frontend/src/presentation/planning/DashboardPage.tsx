@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { GOAL_TYPE_OPTIONS } from './goal-types';
 import type { Goal, Session } from '../../infrastructure/planning-client';
 import {
+  deleteGoal,
   getActiveGoal,
   listSessions,
 } from '../../infrastructure/planning-client';
@@ -25,10 +26,27 @@ export function DashboardPage() {
   const [goal, setGoal] = useState<Goal | null>(null);
   const [goalLoading, setGoalLoading] = useState(true);
   const [goalError, setGoalError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [sessions, setSessions] = useState<Session[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [sessionsError, setSessionsError] = useState<string | null>(null);
+
+  const handleDeleteGoal = async () => {
+    if (!goal) return;
+    setDeleting(true);
+    try {
+      await deleteGoal(goal.id);
+      setGoal(null);
+      setSessions([]);
+      setConfirmDelete(false);
+    } catch {
+      setGoalError("Erreur lors de la suppression de l'objectif");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const loadData = () => {
     setGoalLoading(true);
@@ -105,12 +123,47 @@ export function DashboardPage() {
             <p className="text-mute text-sm">
               {goal.horizonWeeks} sem. · {goal.sessionDurationMinutes} min
             </p>
-            <Link
-              to="/goals/new"
-              className="self-start border border-gray-300 text-ink px-5 py-2 rounded-full text-sm font-medium"
-            >
-              Changer d&apos;objectif
-            </Link>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Link
+                to="/goals/new"
+                className="border border-hairline text-ink px-5 py-2 rounded-full text-sm font-medium"
+              >
+                Changer d&apos;objectif
+              </Link>
+              {!confirmDelete ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmDelete(true);
+                  }}
+                  className="border border-hairline text-mute px-5 py-2 rounded-full text-sm font-medium"
+                >
+                  Supprimer
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleDeleteGoal();
+                    }}
+                    disabled={deleting}
+                    className="bg-ink text-canvas px-5 py-2 rounded-full text-sm font-medium disabled:opacity-50"
+                  >
+                    {deleting ? '…' : 'Confirmer'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmDelete(false);
+                    }}
+                    className="border border-hairline text-mute px-5 py-2 rounded-full text-sm font-medium"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
