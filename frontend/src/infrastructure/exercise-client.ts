@@ -1,3 +1,9 @@
+export interface MuscleImage {
+  url: string;
+  isFront: boolean;
+  isSecondary: boolean;
+}
+
 export interface ExerciseWithPreference {
   id: string;
   wgerId: number | null;
@@ -5,6 +11,8 @@ export interface ExerciseWithPreference {
   description: string;
   muscleGroups: string[];
   equipment: string[];
+  imageUrl: string | null;
+  muscleImages: MuscleImage[];
   youtubeUrl: string | null;
   everkineticSlug: string | null;
   createdAt: string;

@@ -13,6 +13,8 @@ const makeExercise = (
   description: '',
   muscleGroups: [],
   equipment,
+  imageUrl: null,
+  muscleImages: [],
   youtubeUrl: null,
   everkineticSlug: null,
   createdAt: new Date('2024-01-01'),

@@ -18,6 +18,8 @@ interface WgerTranslation {
 interface WgerMuscleObj {
   id: number;
   name_en: string;
+  is_front: boolean;
+  image_url_main: string;
 }
 
 interface WgerEquipmentObj {
@@ -25,11 +27,20 @@ interface WgerEquipmentObj {
   name: string;
 }
 
+interface WgerExerciseImage {
+  id: number;
+  image: string;
+  is_main: boolean;
+  thumbnails: { small: string; medium: string };
+}
+
 interface WgerExerciseInfo {
   id: number;
   muscles: WgerMuscleObj[];
+  muscles_secondary: WgerMuscleObj[];
   equipment: WgerEquipmentObj[];
   translations: WgerTranslation[];
+  images: WgerExerciseImage[];
 }
 
 const WGER_BASE = 'https://wger.de/api/v2';
@@ -58,11 +69,20 @@ async function main(): Promise<void> {
 
   const count = await repo.count();
   if (count > 0) {
+    const withImages = await repo
+      .createQueryBuilder('e')
+      .where('e.image_url IS NOT NULL')
+      .getCount();
+    if (withImages > 0) {
+      console.log(
+        `[wger-seed] ${String(count)} exercises with images — skipping.`,
+      );
+      await dataSource.destroy();
+      return;
+    }
     console.log(
-      `[wger-seed] ${String(count)} exercises already present — skipping.`,
+      `[wger-seed] ${String(count)} exercises found but no images — updating…`,
     );
-    await dataSource.destroy();
-    return;
   }
 
   let offset = 0;
@@ -90,7 +110,20 @@ async function main(): Promise<void> {
           .filter((n) => n.length > 0);
         entity.equipment = ex.equipment
           .map((e) => e.name)
-          .filter((n) => n.length > 0);
+          .filter((n) => n.length > 0 && n !== 'none (bodyweight exercise)');
+        entity.imageUrl = ex.images.find((img) => img.is_main)?.image ?? null;
+        entity.muscleImages = [
+          ...ex.muscles.map((m) => ({
+            url: m.image_url_main,
+            isFront: m.is_front,
+            isSecondary: false,
+          })),
+          ...ex.muscles_secondary.map((m) => ({
+            url: m.image_url_main,
+            isFront: m.is_front,
+            isSecondary: true,
+          })),
+        ];
         entity.youtubeUrl = null;
         entity.everkineticSlug = null;
         return entity;
