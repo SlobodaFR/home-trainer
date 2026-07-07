@@ -21,9 +21,11 @@ import { TypeOrmGoalRepository } from '../infrastructure/persistence/repositorie
 import { TypeOrmSessionRepository } from '../infrastructure/persistence/repositories/typeorm-session.repository';
 import { TypeOrmUserExerciseRepository } from '../infrastructure/persistence/repositories/typeorm-user-exercise.repository';
 import { PlanningController } from '../interfaces/http/controllers/planning.controller';
+import { ProfileModule } from '../profile/profile.module';
 
 @Module({
   imports: [
+    ProfileModule,
     TypeOrmModule.forFeature([
       GoalOrmEntity,
       SessionOrmEntity,

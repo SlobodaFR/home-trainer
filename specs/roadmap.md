@@ -116,6 +116,17 @@
 
 ---
 
+### F-011: User Fitness Assessment
+
+**Summary**: User completes a guided stepper form; one LLM call generates a structured fitness profile used by the planner and analysis prompt.
+**PRD sections**: FR-1, FR-2, FR-10
+**Depends on**: F-006, F-009
+**Delivers**: `UserProfile` entity (level, injuries, equipment comfort, specific goal), assessment stepper UI, LLM-generated profile card (shown before confirmation), profile injected into planner (volume/intensity) and LLM analysis prompt
+**Estimated size**: M
+**Status**: Complete
+
+---
+
 ## Dependency Graph
 
 ```
@@ -152,3 +163,7 @@ Full loop functional: set goal → auto-plan → execute session → log sets �
 ### M4: Intelligence & History (F-009 → F-010)
 
 LLM analysis async, notifications, progress history. App feature-complete.
+
+### M5: Personalisation (F-011)
+
+Fitness assessment onboarding, planner et analyse LLM adaptés au niveau réel de l'utilisateur.

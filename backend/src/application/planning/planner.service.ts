@@ -5,6 +5,7 @@ import {
   NewSession,
   NewSessionExercise,
 } from '../../domain/planning/session.repository';
+import type { FitnessProfileConfig } from '../../domain/profile/user-fitness-profile';
 
 @Injectable()
 export class PlannerService {
@@ -29,6 +30,7 @@ export class PlannerService {
   buildSessionExercises(
     goal: Pick<Goal, 'sessionDurationMinutes' | 'availableEquipment'>,
     exercises: ExerciseWithPreference[],
+    config?: FitnessProfileConfig,
   ): NewSessionExercise[] {
     let filtered = exercises.filter(
       (e) =>
@@ -57,18 +59,24 @@ export class PlannerService {
     const budget = Math.max(1, Math.floor(goal.sessionDurationMinutes / 5));
     const selected = sorted.slice(0, budget);
 
+    const sets = config?.maxSetsPerExercise ?? 3;
+    const repsOrDuration = String(
+      Math.round(10 * (config?.intensityMultiplier ?? 1)),
+    );
+
     return selected.map((e, i) => ({
       exerciseId: e.id,
       exerciseName: e.name,
       order: i + 1,
-      sets: 3,
-      repsOrDuration: '10',
+      sets,
+      repsOrDuration,
     }));
   }
 
   generateSessions(
     goal: Goal,
     exercises: ExerciseWithPreference[],
+    config?: FitnessProfileConfig,
   ): NewSession[] {
     const dates = this.generateDates(
       goal.activeFrom,
@@ -79,7 +87,7 @@ export class PlannerService {
       userId: goal.userId,
       goalId: goal.id,
       plannedDate,
-      exercises: this.buildSessionExercises(goal, exercises),
+      exercises: this.buildSessionExercises(goal, exercises, config),
     }));
   }
 }

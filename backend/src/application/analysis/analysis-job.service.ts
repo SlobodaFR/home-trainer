@@ -5,6 +5,7 @@ import { SessionAnalysisRepository } from '../../domain/analysis/session-analysi
 import { WorkoutLogRepository } from '../../domain/execution/workout-log.repository';
 import { GoalRepository } from '../../domain/planning/goal.repository';
 import { SessionRepository } from '../../domain/planning/session.repository';
+import { ProfileRepository } from '../../domain/profile/profile.repository';
 
 @Injectable()
 export class AnalysisJobService {
@@ -15,6 +16,7 @@ export class AnalysisJobService {
     private readonly workoutLogRepository: WorkoutLogRepository,
     private readonly promptBuilder: PromptBuilderService,
     private readonly llmService: LLMService,
+    private readonly profileRepository: ProfileRepository,
   ) {}
 
   run(sessionId: string, userId: string, locale: string): void {
@@ -39,10 +41,11 @@ export class AnalysisJobService {
     });
 
     try {
-      const [currentSession, allSessions, goal] = await Promise.all([
+      const [currentSession, allSessions, goal, profile] = await Promise.all([
         this.sessionRepository.findById(sessionId),
         this.sessionRepository.findByUser(userId, 'all'),
         this.goalRepository.findActiveByUser(userId),
+        this.profileRepository.findByUser(userId),
       ]);
 
       if (!currentSession || !goal) {
@@ -69,6 +72,7 @@ export class AnalysisJobService {
         logsBySession,
         goal,
         locale,
+        profile: profile ?? undefined,
       });
 
       const result = await this.llmService.complete(systemPrompt, userPrompt);

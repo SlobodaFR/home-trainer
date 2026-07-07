@@ -6,6 +6,7 @@ import { SessionAnalysisRepository } from '../../domain/analysis/session-analysi
 import { WorkoutLogRepository } from '../../domain/execution/workout-log.repository';
 import { GoalRepository } from '../../domain/planning/goal.repository';
 import { SessionRepository } from '../../domain/planning/session.repository';
+import { ProfileRepository } from '../../domain/profile/profile.repository';
 
 const mockAnalysis: SessionAnalysis = {
   id: 'a-1',
@@ -81,6 +82,10 @@ function makeDeps(
     ...overrides.llm,
   } as unknown as jest.Mocked<LLMService>;
 
+  const profileRepo = {
+    findByUser: jest.fn().mockResolvedValue(null),
+  } as unknown as jest.Mocked<ProfileRepository>;
+
   const service = new AnalysisJobService(
     analysisRepo,
     sessionRepo,
@@ -88,6 +93,7 @@ function makeDeps(
     workoutLogRepo,
     promptBuilder,
     llm,
+    profileRepo,
   );
 
   return {

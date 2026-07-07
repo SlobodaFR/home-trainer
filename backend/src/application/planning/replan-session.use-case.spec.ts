@@ -8,6 +8,7 @@ import { Goal } from '../../domain/planning/goal';
 import { GoalRepository } from '../../domain/planning/goal.repository';
 import { Session } from '../../domain/planning/session';
 import { SessionRepository } from '../../domain/planning/session.repository';
+import { ProfileRepository } from '../../domain/profile/profile.repository';
 
 const mockGoal: Goal = {
   id: 'goal-1',
@@ -67,6 +68,10 @@ describe('ReplanSessionUseCase', () => {
         {
           provide: PlannerService,
           useValue: { buildSessionExercises: jest.fn().mockReturnValue([]) },
+        },
+        {
+          provide: ProfileRepository,
+          useValue: { findByUser: jest.fn().mockResolvedValue(null) },
         },
       ],
     }).compile();

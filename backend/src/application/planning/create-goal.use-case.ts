@@ -6,6 +6,7 @@ import { UserExerciseRepository } from '../../domain/exercise/user-exercise.repo
 import { Goal } from '../../domain/planning/goal';
 import { GoalRepository } from '../../domain/planning/goal.repository';
 import { SessionRepository } from '../../domain/planning/session.repository';
+import { ProfileRepository } from '../../domain/profile/profile.repository';
 
 @Injectable()
 export class CreateGoalUseCase {
@@ -15,6 +16,7 @@ export class CreateGoalUseCase {
     private readonly exerciseRepository: ExerciseRepository,
     private readonly userExerciseRepository: UserExerciseRepository,
     private readonly plannerService: PlannerService,
+    private readonly profileRepository: ProfileRepository,
   ) {}
 
   async execute(
@@ -45,7 +47,12 @@ export class CreateGoalUseCase {
       };
     });
 
-    const sessions = this.plannerService.generateSessions(goal, enriched);
+    const profile = await this.profileRepository.findByUser(userId);
+    const sessions = this.plannerService.generateSessions(
+      goal,
+      enriched,
+      profile?.plannerConfig ?? undefined,
+    );
     await this.sessionRepository.saveAll(sessions);
 
     return goal;

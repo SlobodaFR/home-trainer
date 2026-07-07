@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { WorkoutLog } from '../../domain/execution/workout-log';
 import { Goal } from '../../domain/planning/goal';
 import { Session } from '../../domain/planning/session';
+import type { UserFitnessProfile } from '../../domain/profile/user-fitness-profile';
 
 interface BuildParams {
   currentSession: Session;
@@ -9,6 +10,7 @@ interface BuildParams {
   logsBySession: Map<string, WorkoutLog[]>;
   goal: Goal;
   locale: string;
+  profile?: UserFitnessProfile;
 }
 
 function formatSet(log: WorkoutLog): string {
@@ -39,13 +41,21 @@ function formatSession(session: Session, logs: WorkoutLog[]): string {
 @Injectable()
 export class PromptBuilderService {
   build(params: BuildParams): { systemPrompt: string; userPrompt: string } {
-    const { currentSession, history, logsBySession, goal, locale } = params;
+    const { currentSession, history, logsBySession, goal, locale, profile } =
+      params;
+
+    const profileContext = profile
+      ? `User fitness profile: level=${profile.level}. ${profile.summary} `
+      : '';
 
     const systemPrompt = [
+      profileContext,
       `You are a personal sports coach assistant. Respond in the language identified by locale: ${locale}.`,
       'Provide a concise, practical analysis (3-5 sentences) focusing on: volume vs previous sessions, fatigue signals (RPE trend), consistency, and one concrete suggestion.',
       'Do not repeat the raw data — interpret it.',
-    ].join(' ');
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     const recentHistory = history.slice(0, 5);
 

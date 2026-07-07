@@ -21,9 +21,11 @@ import { TypeOrmSessionAnalysisRepository } from '../infrastructure/persistence/
 import { TypeOrmSessionRepository } from '../infrastructure/persistence/repositories/typeorm-session.repository';
 import { TypeOrmWorkoutLogRepository } from '../infrastructure/persistence/repositories/typeorm-workout-log.repository';
 import { AnalysisController } from '../interfaces/http/controllers/analysis.controller';
+import { ProfileModule } from '../profile/profile.module';
 
 @Module({
   imports: [
+    ProfileModule,
     TypeOrmModule.forFeature([
       SessionAnalysisOrmEntity,
       SessionOrmEntity,
