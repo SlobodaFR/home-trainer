@@ -13,8 +13,9 @@ export class GetExerciseByIdUseCase {
   async execute(
     id: string,
     userId: string,
+    language?: string,
   ): Promise<ExerciseWithPreference | null> {
-    const exercise = await this.exerciseRepository.findById(id);
+    const exercise = await this.exerciseRepository.findById(id, language);
     if (!exercise) return null;
 
     const ue = await this.userExerciseRepository.findByUserAndExercise(

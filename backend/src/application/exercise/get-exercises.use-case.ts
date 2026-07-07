@@ -10,6 +10,7 @@ export interface GetExercisesParams {
   equipment?: string;
   page?: number;
   limit?: number;
+  language?: string;
 }
 
 export interface PaginatedExercises {
@@ -35,6 +36,7 @@ export class GetExercisesUseCase {
       equipment: params.equipment,
       page,
       limit,
+      language: params.language,
     });
 
     const userExercises = await this.userExerciseRepository.findByUser(

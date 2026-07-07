@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   OAuthClient,
   TokenPair,
+  UserMe,
   UserProfile,
 } from '../../domain/auth/oauth-client';
 
@@ -18,6 +19,14 @@ interface UserInfoDto {
   email: string;
   name: string;
   avatarUrl: string;
+}
+
+interface UserMeDto {
+  name: string;
+  email: string;
+  avatar?: string | null;
+  language?: string;
+  country?: string | null;
 }
 
 @Injectable()
@@ -68,6 +77,23 @@ export class HttpOAuthClient extends OAuthClient {
       email: dto.email,
       name: dto.name,
       avatarUrl: dto.avatarUrl,
+    };
+  }
+
+  async fetchMe(accessToken: string): Promise<UserMe> {
+    const response = await fetch(new URL('/me', this.authServiceUrl), {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch /me: ${String(response.status)}`);
+    }
+    const dto = (await response.json()) as UserMeDto;
+    return {
+      name: dto.name,
+      email: dto.email,
+      avatarUrl: dto.avatar ?? null,
+      language: dto.language ?? 'en',
+      country: dto.country ?? null,
     };
   }
 

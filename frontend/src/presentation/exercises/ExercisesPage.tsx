@@ -8,12 +8,16 @@ import {
   removeFavorite,
   toggleFavorite,
 } from '../../infrastructure/exercise-client';
+import { useAuth } from '../auth/use-auth';
 import { Toast } from '../shared/Toast';
 import { useToast } from '../shared/useToast';
 
 const PAGE_SIZE = 20;
 
 export function ExercisesPage() {
+  const { user } = useAuth();
+  const lang = user?.language ?? 'en';
+
   const [exercises, setExercises] = useState<ExerciseWithPreference[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -43,6 +47,7 @@ export function ExercisesPage() {
           equipment,
           page: pg,
           limit: PAGE_SIZE,
+          lang,
         });
         setTotal(result.total);
         setExercises((prev) =>
@@ -58,7 +63,7 @@ export function ExercisesPage() {
         setLoadingMore(false);
       }
     },
-    [muscleGroup, equipment],
+    [muscleGroup, equipment, lang],
   );
 
   useEffect(() => {

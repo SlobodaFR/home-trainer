@@ -38,6 +38,17 @@ export class ExerciseOrmEntity {
   @Column({ type: 'text', name: 'everkinetic_slug', nullable: true })
   everkineticSlug!: string | null;
 
+  @Column({ type: 'text', name: 'name_fr', nullable: true, default: null })
+  nameFr!: string | null;
+
+  @Column({
+    type: 'text',
+    name: 'description_fr',
+    nullable: true,
+    default: null,
+  })
+  descriptionFr!: string | null;
+
   @CreateDateColumn({ type: 'datetime', name: 'created_at' })
   createdAt!: Date;
 }

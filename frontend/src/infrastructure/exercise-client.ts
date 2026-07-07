@@ -44,17 +44,23 @@ export function listExercises(params: {
   equipment?: string;
   page: number;
   limit: number;
+  lang?: string;
 }): Promise<PaginatedExercises> {
   const q = new URLSearchParams();
   if (params.muscleGroup) q.set('muscleGroup', params.muscleGroup);
   if (params.equipment) q.set('equipment', params.equipment);
   q.set('page', String(params.page));
   q.set('limit', String(params.limit));
+  if (params.lang) q.set('lang', params.lang);
   return request<PaginatedExercises>(`${BASE}?${q.toString()}`);
 }
 
-export function getExercise(id: string): Promise<ExerciseWithPreference> {
-  return request<ExerciseWithPreference>(`${BASE}/${id}`);
+export function getExercise(
+  id: string,
+  lang?: string,
+): Promise<ExerciseWithPreference> {
+  const q = lang ? `?lang=${lang}` : '';
+  return request<ExerciseWithPreference>(`${BASE}/${id}${q}`);
 }
 
 export function toggleFavorite(id: string): Promise<{ isFavorite: boolean }> {

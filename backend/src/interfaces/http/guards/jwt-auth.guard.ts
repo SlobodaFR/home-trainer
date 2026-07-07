@@ -16,6 +16,7 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 interface AuthenticatedRequest extends Request {
   user?: CurrentUserPayload;
+  accessToken?: string;
 }
 
 @Injectable()
@@ -60,6 +61,7 @@ export class JwtAuthGuard implements CanActivate {
           email: newPayload.email,
           name: newPayload.name,
         };
+        request.accessToken = newTokens.accessToken;
         return true;
       } catch {
         clearAuthCookies(response);
@@ -79,6 +81,7 @@ export class JwtAuthGuard implements CanActivate {
       email: payload.email,
       name: payload.name,
     };
+    request.accessToken = accessToken;
     return true;
   }
 }

@@ -10,12 +10,15 @@ import {
   setPreference,
   toggleFavorite,
 } from '../../infrastructure/exercise-client';
+import { useAuth } from '../auth/use-auth';
 import { Toast } from '../shared/Toast';
 import { useToast } from '../shared/useToast';
 
 export function ExerciseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const lang = user?.language ?? 'en';
   const [exercise, setExercise] = useState<ExerciseWithPreference | null>(null);
   const [loading, setLoading] = useState(true);
   const [preferenceWeight, setPreferenceWeight] = useState<number | null>(null);
@@ -25,7 +28,7 @@ export function ExerciseDetailPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    getExercise(id)
+    getExercise(id, lang)
       .then((ex) => {
         setExercise(ex);
         setPreferenceWeight(ex.preferenceWeight);
@@ -37,7 +40,7 @@ export function ExerciseDetailPage() {
       .finally(() => {
         setLoading(false);
       });
-  }, [id, navigate, showToast]);
+  }, [id, lang, navigate, showToast]);
 
   const handleFavoriteToggle = async (newValue: boolean) => {
     if (!id) return;

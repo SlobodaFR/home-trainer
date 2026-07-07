@@ -108,15 +108,15 @@ describe('ExerciseController', () => {
   describe('detail', () => {
     it('returns exercise when found', async () => {
       getExerciseById.execute.mockResolvedValue(mockExercise);
-      const result = await controller.detail('ex-1', mockUser);
+      const result = await controller.detail('ex-1', undefined, mockUser);
       expect(result).toEqual(mockExercise);
     });
 
     it('throws NotFoundException when exercise not found', async () => {
       getExerciseById.execute.mockResolvedValue(null);
-      await expect(controller.detail('unknown', mockUser)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        controller.detail('unknown', undefined, mockUser),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

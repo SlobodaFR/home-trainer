@@ -8,6 +8,12 @@ interface WgerListResponse<T> {
   results: T[];
 }
 
+interface WgerLanguage {
+  id: number;
+  short_name: string;
+  full_name: string;
+}
+
 interface WgerTranslation {
   id: number;
   language: number;
@@ -56,6 +62,13 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function getFrenchLanguageId(): Promise<number | null> {
+  const data = await fetchJson<WgerListResponse<WgerLanguage>>(
+    `${WGER_BASE}/language/?format=json&limit=100`,
+  );
+  return data.results.find((l) => l.short_name === 'fr')?.id ?? null;
+}
+
 async function main(): Promise<void> {
   const dataSource = new DataSource({
     type: 'better-sqlite3',
@@ -73,17 +86,34 @@ async function main(): Promise<void> {
       .createQueryBuilder('e')
       .where('e.image_url IS NOT NULL')
       .getCount();
-    if (withImages > 0) {
+    const withFr = await repo
+      .createQueryBuilder('e')
+      .where('e.name_fr IS NOT NULL')
+      .getCount();
+
+    if (withImages > 0 && withFr > 0) {
       console.log(
-        `[wger-seed] ${String(count)} exercises with images — skipping.`,
+        `[wger-seed] ${String(count)} exercises with images and FR — skipping.`,
       );
       await dataSource.destroy();
       return;
     }
-    console.log(
-      `[wger-seed] ${String(count)} exercises found but no images — updating…`,
-    );
+    if (withImages === 0) {
+      console.log(
+        `[wger-seed] ${String(count)} exercises found but no images — updating…`,
+      );
+    } else {
+      console.log(
+        `[wger-seed] ${String(count)} exercises found but missing FR translations — updating…`,
+      );
+    }
   }
+
+  console.log('[wger-seed] Fetching French language ID from Wger…');
+  const frenchLanguageId = await getFrenchLanguageId();
+  console.log(
+    `[wger-seed] French language ID: ${frenchLanguageId !== null ? String(frenchLanguageId) : 'not found'}`,
+  );
 
   let offset = 0;
   let page = 1;
@@ -96,15 +126,22 @@ async function main(): Promise<void> {
 
     const batch = data.results
       .map((ex) => {
-        const translation = ex.translations.find(
+        const enTranslation = ex.translations.find(
           (t) => t.language === ENGLISH_LANGUAGE,
         );
-        if (!translation?.name.trim()) return null;
+        if (!enTranslation?.name.trim()) return null;
+
+        const frTranslation =
+          frenchLanguageId !== null
+            ? ex.translations.find((t) => t.language === frenchLanguageId)
+            : undefined;
 
         const entity = new ExerciseOrmEntity();
         entity.wgerId = ex.id;
-        entity.name = translation.name.trim();
-        entity.description = translation.description;
+        entity.name = enTranslation.name.trim();
+        entity.description = enTranslation.description;
+        entity.nameFr = frTranslation?.name.trim() ?? null;
+        entity.descriptionFr = frTranslation?.description ?? null;
         entity.muscleGroups = ex.muscles
           .map((m) => m.name_en)
           .filter((n) => n.length > 0);
