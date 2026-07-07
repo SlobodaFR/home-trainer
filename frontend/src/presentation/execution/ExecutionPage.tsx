@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ExerciseSetCard } from './ExerciseSetCard';
 import { RPEModal } from './RPEModal';
@@ -19,6 +19,7 @@ import type {
   SessionExercise,
 } from '../../infrastructure/planning-client';
 import { getSession } from '../../infrastructure/planning-client';
+import { AnalysisContext } from '../shared/AnalysisContext';
 import { Toast } from '../shared/Toast';
 import { useToast } from '../shared/useToast';
 
@@ -26,6 +27,7 @@ export function ExecutionPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { message, show: showToast } = useToast();
+  const { setPending } = useContext(AnalysisContext);
   const {
     remaining,
     active: timerActive,
@@ -145,7 +147,8 @@ export function ExecutionPage() {
     setFinishing(true);
     try {
       await finishSession(id, rpe, note);
-      navigate('/');
+      setPending(id);
+      navigate(`/sessions/${id}`);
     } catch {
       showToast('Erreur — réessayez.');
       setFinishing(false);
