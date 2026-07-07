@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Post } from '@nestjs/common';
 import { FinishSessionUseCase } from '../../../application/execution/finish-session.use-case';
 import { GetSetsUseCase } from '../../../application/execution/get-sets.use-case';
 import { LogSetUseCase } from '../../../application/execution/log-set.use-case';
@@ -53,13 +53,16 @@ export class ExecutionController {
   async finishSession(
     @Param('id') id: string,
     @Body() dto: FinishSessionDto,
+    @Headers('accept-language') acceptLanguage: string | undefined,
     @CurrentUser() user: CurrentUserPayload,
   ): Promise<Session> {
+    const locale = acceptLanguage?.split(',')[0]?.split(';')[0]?.trim() ?? 'fr';
     return this.finishSessionUseCase.execute(
       id,
       user.id,
       dto.rpe ?? null,
       dto.note ?? null,
+      locale,
     );
   }
 

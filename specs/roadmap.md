@@ -101,7 +101,7 @@
 **Depends on**: F-007
 **Delivers**: `LLMService` interface, OpenAI adapter, DB-persisted job (`pending / done / failed`), prompt builder (session + history, no PII), 1-retry on failure, `GET /analyses/:sessionId`
 **Estimated size**: M
-**Status**: Not started
+**Status**: Complete
 
 ---
 

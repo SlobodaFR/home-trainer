@@ -5,6 +5,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import cookieParser from 'cookie-parser';
 import * as Joi from 'joi';
+import { AnalysisModule } from './analysis/analysis.module';
 import { AuthModule } from './auth/auth.module';
 import { ExecutionModule } from './execution/execution.module';
 import { ExerciseModule } from './exercise/exercise.module';
@@ -12,6 +13,7 @@ import { HealthModule } from './health/health.module';
 import { ExerciseOrmEntity } from './infrastructure/persistence/entities/exercise.orm-entity';
 import { GoalOrmEntity } from './infrastructure/persistence/entities/goal.orm-entity';
 import { RevokedSessionOrmEntity } from './infrastructure/persistence/entities/revoked-session.orm-entity';
+import { SessionAnalysisOrmEntity } from './infrastructure/persistence/entities/session-analysis.orm-entity';
 import { SessionExerciseOrmEntity } from './infrastructure/persistence/entities/session-exercise.orm-entity';
 import { SessionOrmEntity } from './infrastructure/persistence/entities/session.orm-entity';
 import { UserExerciseOrmEntity } from './infrastructure/persistence/entities/user-exercise.orm-entity';
@@ -34,6 +36,8 @@ import { PlanningModule } from './planning/planning.module';
         AUTH_CLIENT_ID: Joi.string().required(),
         AUTH_CLIENT_SECRET: Joi.string().required(),
         AUTH_WEBHOOK_SECRET: Joi.string().required(),
+        OPENAI_API_KEY: Joi.string().required(),
+        LLM_PROVIDER: Joi.string().default('openai'),
       }),
     }),
     TypeOrmModule.forRootAsync({
@@ -50,6 +54,7 @@ import { PlanningModule } from './planning/planning.module';
           SessionOrmEntity,
           SessionExerciseOrmEntity,
           WorkoutLogOrmEntity,
+          SessionAnalysisOrmEntity,
         ],
         synchronize: true,
       }),
@@ -67,6 +72,7 @@ import { PlanningModule } from './planning/planning.module';
     ExerciseModule,
     PlanningModule,
     ExecutionModule,
+    AnalysisModule,
   ],
 })
 export class AppModule implements NestModule {

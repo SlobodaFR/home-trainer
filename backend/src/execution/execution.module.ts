@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AnalysisModule } from '../analysis/analysis.module';
 import { FinishSessionUseCase } from '../application/execution/finish-session.use-case';
 import { GetSetsUseCase } from '../application/execution/get-sets.use-case';
 import { LogSetUseCase } from '../application/execution/log-set.use-case';
@@ -17,6 +18,7 @@ import { ExecutionController } from '../interfaces/http/controllers/execution.co
 
 @Module({
   imports: [
+    AnalysisModule,
     TypeOrmModule.forFeature([
       SessionOrmEntity,
       SessionExerciseOrmEntity,
