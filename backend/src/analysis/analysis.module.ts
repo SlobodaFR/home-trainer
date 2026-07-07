@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AnalysisJobService } from '../application/analysis/analysis-job.service';
 import { GetAnalysisUseCase } from '../application/analysis/get-analysis.use-case';
+import { GetHistoryUseCase } from '../application/analysis/get-history.use-case';
 import { PromptBuilderService } from '../application/analysis/prompt-builder.service';
 import { RetryAnalysisUseCase } from '../application/analysis/retry-analysis.use-case';
 import { LLMService } from '../domain/analysis/llm.service';
@@ -34,6 +35,7 @@ import { AnalysisController } from '../interfaces/http/controllers/analysis.cont
   controllers: [AnalysisController],
   providers: [
     GetAnalysisUseCase,
+    GetHistoryUseCase,
     RetryAnalysisUseCase,
     AnalysisJobService,
     PromptBuilderService,

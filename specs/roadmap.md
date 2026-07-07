@@ -112,7 +112,7 @@
 **Depends on**: F-008, F-009
 **Delivers**: In-app notification (polling or SSE), analysis-ready alert, progress history page (sessions + volume + linked analysis), analysis detail view
 **Estimated size**: M
-**Status**: Not started
+**Status**: Complete
 
 ---
 

@@ -6,6 +6,7 @@ import {
   getSession,
   replanSession,
 } from '../../infrastructure/planning-client';
+import { AnalysisPanel } from '../shared/AnalysisPanel';
 import { Toast } from '../shared/Toast';
 import { useToast } from '../shared/useToast';
 
@@ -169,6 +170,10 @@ export function SessionDetailPage() {
           >
             Reprendre
           </button>
+        )}
+
+        {session.status === 'completed' && id && (
+          <AnalysisPanel sessionId={id} />
         )}
       </div>
       <Toast message={message} />

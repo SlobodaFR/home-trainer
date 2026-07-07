@@ -8,6 +8,10 @@ import {
   Post,
 } from '@nestjs/common';
 import { GetAnalysisUseCase } from '../../../application/analysis/get-analysis.use-case';
+import {
+  GetHistoryUseCase,
+  HistoryEntry,
+} from '../../../application/analysis/get-history.use-case';
 import { RetryAnalysisUseCase } from '../../../application/analysis/retry-analysis.use-case';
 import { SessionAnalysis } from '../../../domain/analysis/session-analysis';
 import {
@@ -20,6 +24,7 @@ export class AnalysisController {
   constructor(
     private readonly getAnalysisUseCase: GetAnalysisUseCase,
     private readonly retryAnalysisUseCase: RetryAnalysisUseCase,
+    private readonly getHistoryUseCase: GetHistoryUseCase,
   ) {}
 
   @Get('analyses/:sessionId')
@@ -28,6 +33,13 @@ export class AnalysisController {
     @CurrentUser() user: CurrentUserPayload,
   ): Promise<SessionAnalysis> {
     return this.getAnalysisUseCase.execute(sessionId, user.id);
+  }
+
+  @Get('history')
+  async getHistory(
+    @CurrentUser() user: CurrentUserPayload,
+  ): Promise<HistoryEntry[]> {
+    return this.getHistoryUseCase.execute(user.id);
   }
 
   @Post('analyses/:sessionId/retry')
