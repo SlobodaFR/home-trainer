@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { EverkineticViewer } from './EverkineticViewer';
 import { FavoriteButton } from './FavoriteButton';
+import { MuscleDiagram } from './MuscleDiagram';
 import { PreferenceWeight } from './PreferenceWeight';
 import type { ExerciseWithPreference } from '../../infrastructure/exercise-client';
 import {
@@ -94,7 +94,17 @@ export function ExerciseDetailPage() {
 
         <h1 className="text-2xl font-medium text-ink">{exercise.name}</h1>
 
-        <EverkineticViewer slug={exercise.everkineticSlug} />
+        {exercise.imageUrl && (
+          <img
+            src={exercise.imageUrl}
+            alt={exercise.name}
+            className="w-full rounded-lg object-cover max-h-72"
+          />
+        )}
+
+        {exercise.muscleImages.length > 0 && (
+          <MuscleDiagram muscleImages={exercise.muscleImages} />
+        )}
 
         {exercise.description && (
           <div

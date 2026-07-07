@@ -55,6 +55,8 @@ function toExercise(e: ExerciseOrmEntity): Exercise {
     description: e.description,
     muscleGroups: e.muscleGroups,
     equipment: e.equipment,
+    imageUrl: e.imageUrl,
+    muscleImages: e.muscleImages ?? [],
     youtubeUrl: e.youtubeUrl,
     everkineticSlug: e.everkineticSlug,
     createdAt: e.createdAt,

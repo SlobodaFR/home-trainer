@@ -11,6 +11,8 @@ const mockExercise: Exercise = {
   description: 'A curl exercise',
   muscleGroups: ['biceps'],
   equipment: ['barbell'],
+  imageUrl: null,
+  muscleImages: [],
   youtubeUrl: null,
   everkineticSlug: null,
   createdAt: new Date('2024-01-01'),

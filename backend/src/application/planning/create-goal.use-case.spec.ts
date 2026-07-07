@@ -145,6 +145,8 @@ describe('CreateGoalUseCase', () => {
           description: '',
           muscleGroups: [],
           equipment: [],
+          imageUrl: null,
+          muscleImages: [],
           youtubeUrl: null,
           everkineticSlug: null,
           createdAt: new Date(),
