@@ -97,9 +97,10 @@ export function ExerciseDetailPage() {
         <EverkineticViewer slug={exercise.everkineticSlug} />
 
         {exercise.description && (
-          <p className="text-mute text-base whitespace-pre-wrap">
-            {exercise.description}
-          </p>
+          <div
+            className="text-mute text-base [&_p]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-0.5"
+            dangerouslySetInnerHTML={{ __html: exercise.description }}
+          />
         )}
 
         {exercise.youtubeUrl && (
