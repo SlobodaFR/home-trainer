@@ -22,6 +22,7 @@ export abstract class SessionRepository {
   ): Promise<Session[]>;
   abstract findById(id: string): Promise<Session | null>;
   abstract saveAll(sessions: NewSession[]): Promise<void>;
+  abstract deleteByGoalId(goalId: string): Promise<void>;
   abstract replaceExercises(
     sessionId: string,
     exercises: NewSessionExercise[],

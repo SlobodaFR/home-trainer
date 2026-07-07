@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CreateGoalUseCase } from '../application/planning/create-goal.use-case';
+import { DeleteGoalUseCase } from '../application/planning/delete-goal.use-case';
 import { GetActiveGoalUseCase } from '../application/planning/get-active-goal.use-case';
 import { GetSessionByIdUseCase } from '../application/planning/get-session-by-id.use-case';
 import { GetSessionsUseCase } from '../application/planning/get-sessions.use-case';
@@ -35,6 +36,7 @@ import { PlanningController } from '../interfaces/http/controllers/planning.cont
   providers: [
     PlannerService,
     CreateGoalUseCase,
+    DeleteGoalUseCase,
     GetActiveGoalUseCase,
     GetSessionsUseCase,
     GetSessionByIdUseCase,

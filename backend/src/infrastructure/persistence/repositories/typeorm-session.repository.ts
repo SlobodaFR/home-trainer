@@ -32,9 +32,20 @@ export class TypeOrmSessionRepository extends SessionRepository {
         : { userId };
     const entities = await this.sessionRepo.find({
       where,
-      order: { plannedDate: 'ASC' },
+      relations: { exercises: true },
+      order: { plannedDate: 'ASC', exercises: { order: 'ASC' } },
     });
-    return entities.map((e) => this.toDomain(e, []));
+    return entities.map((e) => this.toDomain(e, e.exercises));
+  }
+
+  async deleteByGoalId(goalId: string): Promise<void> {
+    const sessions = await this.sessionRepo.find({
+      where: { goalId },
+      relations: { exercises: true },
+    });
+    if (sessions.length > 0) {
+      await this.sessionRepo.remove(sessions);
+    }
   }
 
   async findById(id: string): Promise<Session | null> {
