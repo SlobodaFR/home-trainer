@@ -133,28 +133,35 @@ describe('ExecutionController', () => {
         note: 'Good',
       });
 
-      const result = await controller.finishSession('session-1', dto, mockUser);
+      const result = await controller.finishSession(
+        'session-1',
+        dto,
+        'fr,en;q=0.9',
+        mockUser,
+      );
 
       expect(finishSession.execute).toHaveBeenCalledWith(
         'session-1',
         'user-1',
         8,
         'Good',
+        'fr',
       );
       expect(result.status).toBe('completed');
     });
 
-    it('passes null when rpe and note are absent', async () => {
+    it('passes null when rpe and note are absent, defaults locale to fr', async () => {
       finishSession.execute.mockResolvedValue(mockSession);
       const dto = new FinishSessionDto();
 
-      await controller.finishSession('session-1', dto, mockUser);
+      await controller.finishSession('session-1', dto, undefined, mockUser);
 
       expect(finishSession.execute).toHaveBeenCalledWith(
         'session-1',
         'user-1',
         null,
         null,
+        'fr',
       );
     });
   });
