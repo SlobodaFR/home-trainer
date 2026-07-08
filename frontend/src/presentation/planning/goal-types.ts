@@ -8,13 +8,15 @@ export const GOAL_TYPE_OPTIONS: { value: GoalType; label: string }[] = [
 ];
 
 export const PLANNING_EQUIPMENT_OPTIONS = [
-  'Barbell',
-  'Dumbbell',
-  'Cable',
-  'Machine',
   'Bodyweight',
-  'Kettlebell',
   'Resistance Band',
+  'Dumbbell',
+  'Barbell',
+  'Kettlebell',
+  'Cable',
+  'Pull-up Bar',
+  'Bench',
+  'Swiss Ball',
 ];
 
 export const DAY_LABELS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];

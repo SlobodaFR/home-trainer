@@ -11,11 +11,13 @@ export const MUSCLE_GROUPS = [
 ];
 
 export const EQUIPMENT_OPTIONS = [
-  'Barbell',
-  'Dumbbell',
-  'Kettlebell',
   'Bodyweight',
+  'Resistance Band',
+  'Dumbbell',
+  'Barbell',
+  'Kettlebell',
   'Cable',
-  'Machine',
-  'Resistance band',
+  'Pull-up Bar',
+  'Bench',
+  'Swiss Ball',
 ];

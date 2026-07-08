@@ -24,9 +24,9 @@ interface UserInfoDto {
 interface UserMeDto {
   name: string;
   email: string;
-  avatar?: string | null;
-  language?: string;
-  country?: string | null;
+  avatarUrl?: string | null;
+  locale?: string | null;
+  countryCode?: string | null;
 }
 
 @Injectable()
@@ -91,9 +91,9 @@ export class HttpOAuthClient extends OAuthClient {
     return {
       name: dto.name,
       email: dto.email,
-      avatarUrl: dto.avatar ?? null,
-      language: dto.language ?? 'en',
-      country: dto.country ?? null,
+      avatarUrl: dto.avatarUrl ?? null,
+      language: dto.locale?.split('-')[0] ?? 'en',
+      country: dto.countryCode ?? null,
     };
   }
 

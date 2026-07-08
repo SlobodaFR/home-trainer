@@ -32,13 +32,17 @@ export class PlannerService {
     exercises: ExerciseWithPreference[],
     config?: FitnessProfileConfig,
   ): NewSessionExercise[] {
-    let filtered = exercises.filter(
-      (e) =>
-        e.equipment.length === 0 ||
-        e.equipment.some((eq) => goal.availableEquipment.includes(eq)),
-    );
+    const userHasEquipment = goal.availableEquipment.length > 0;
+    let filtered = exercises.filter((e) => {
+      if (!userHasEquipment) return true;
+      // Exercises with no equipment tagged are unknown (likely machines) — exclude them
+      // when the user specified equipment preferences
+      if (e.equipment.length === 0) return false;
+      return e.equipment.some((eq) => goal.availableEquipment.includes(eq));
+    });
 
-    if (filtered.length === 0 && goal.availableEquipment.length > 0) {
+    // Fallback: if nothing matched at all, include untagged exercises (better than empty session)
+    if (filtered.length === 0) {
       filtered = exercises.filter((e) => e.equipment.length === 0);
     }
 
