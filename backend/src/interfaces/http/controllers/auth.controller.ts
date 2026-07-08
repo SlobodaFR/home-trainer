@@ -5,12 +5,13 @@ import {
   HttpCode,
   Post,
   Query,
+  Req,
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IsString } from 'class-validator';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { HandleOAuthCallbackUseCase } from '../../../application/auth/handle-oauth-callback.use-case';
 import { HandleSessionRevokedUseCase } from '../../../application/auth/handle-session-revoked.use-case';
 import { OAuthClient } from '../../../domain/auth/oauth-client';
@@ -63,8 +64,24 @@ export class AuthController {
   }
 
   @Get('me')
-  me(@CurrentUser() user: CurrentUserPayload): CurrentUserPayload {
-    return user;
+  async me(
+    @CurrentUser() user: CurrentUserPayload,
+    @Req() req: Request,
+  ): Promise<
+    CurrentUserPayload & { avatarUrl: string | null; language: string }
+  > {
+    const accessToken = (req as Request & { accessToken?: string }).accessToken;
+    if (!accessToken) return { ...user, avatarUrl: null, language: 'en' };
+    try {
+      const profile = await this.oauthClient.fetchMe(accessToken);
+      return {
+        ...user,
+        avatarUrl: profile.avatarUrl,
+        language: profile.language,
+      };
+    } catch {
+      return { ...user, avatarUrl: null, language: 'en' };
+    }
   }
 
   @HttpCode(204)

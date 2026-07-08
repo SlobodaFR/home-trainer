@@ -43,15 +43,21 @@ export class ExerciseController {
       page: query.page,
       limit: query.limit,
       userId: user.id,
+      language: query.lang ?? 'en',
     });
   }
 
   @Get(':id')
   async detail(
     @Param('id') id: string,
+    @Query('lang') lang: string | undefined,
     @CurrentUser() user: CurrentUserPayload,
   ): Promise<ExerciseWithPreference> {
-    const exercise = await this.getExerciseById.execute(id, user.id);
+    const exercise = await this.getExerciseById.execute(
+      id,
+      user.id,
+      lang ?? 'en',
+    );
     if (!exercise) throw new NotFoundException('Exercise not found');
     return exercise;
   }

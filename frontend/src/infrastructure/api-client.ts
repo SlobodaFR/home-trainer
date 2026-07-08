@@ -2,6 +2,8 @@ export interface CurrentUser {
   id: string;
   email: string;
   name: string;
+  avatarUrl: string | null;
+  language: string;
 }
 
 export const apiClient = {

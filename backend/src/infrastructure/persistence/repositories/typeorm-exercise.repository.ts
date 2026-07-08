@@ -19,6 +19,7 @@ export class TypeOrmExerciseRepository extends ExerciseRepository {
     equipment?: string;
     page: number;
     limit: number;
+    language?: string;
   }): Promise<{ data: Exercise[]; total: number }> {
     const qb = this.repo.createQueryBuilder('exercise');
 
@@ -38,21 +39,25 @@ export class TypeOrmExerciseRepository extends ExerciseRepository {
 
     const [entities, total] = await qb.getManyAndCount();
 
-    return { data: entities.map(toExercise), total };
+    return {
+      data: entities.map((e) => toExercise(e, params.language)),
+      total,
+    };
   }
 
-  async findById(id: string): Promise<Exercise | null> {
+  async findById(id: string, language?: string): Promise<Exercise | null> {
     const entity = await this.repo.findOne({ where: { id } });
-    return entity ? toExercise(entity) : null;
+    return entity ? toExercise(entity, language) : null;
   }
 }
 
-function toExercise(e: ExerciseOrmEntity): Exercise {
+function toExercise(e: ExerciseOrmEntity, language?: string): Exercise {
+  const useFr = language === 'fr' && Boolean(e.nameFr);
   return {
     id: e.id,
     wgerId: e.wgerId,
-    name: e.name,
-    description: e.description,
+    name: useFr ? (e.nameFr ?? e.name) : e.name,
+    description: useFr ? (e.descriptionFr ?? e.description) : e.description,
     muscleGroups: e.muscleGroups,
     equipment: e.equipment,
     imageUrl: e.imageUrl,

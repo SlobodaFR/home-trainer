@@ -6,7 +6,8 @@ export abstract class ExerciseRepository {
     equipment?: string;
     page: number;
     limit: number;
+    language?: string;
   }): Promise<{ data: Exercise[]; total: number }>;
 
-  abstract findById(id: string): Promise<Exercise | null>;
+  abstract findById(id: string, language?: string): Promise<Exercise | null>;
 }

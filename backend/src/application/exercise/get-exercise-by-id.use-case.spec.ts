@@ -51,7 +51,7 @@ describe('GetExerciseByIdUseCase', () => {
   it('returns enriched exercise with defaults when no user preference exists', async () => {
     exerciseRepository.findById.mockResolvedValue(mockExercise);
     const result = await useCase.execute('ex-1', 'user-1');
-    expect(exerciseRepository.findById).toHaveBeenCalledWith('ex-1');
+    expect(exerciseRepository.findById).toHaveBeenCalledWith('ex-1', undefined);
     expect(result).toEqual({
       ...mockExercise,
       isFavorite: false,

@@ -79,14 +79,42 @@ describe('AuthController', () => {
   });
 
   describe('me', () => {
-    it('returns current user payload', () => {
+    it('returns enriched user payload from home-auth /me', async () => {
       const user = {
         id: 'user-1',
         email: 'thomas@example.com',
         name: 'Thomas',
       };
-      const result = controller.me(user);
-      expect(result).toEqual(user);
+      oauthClient.fetchMe = jest.fn().mockResolvedValue({
+        name: 'Thomas',
+        email: 'thomas@example.com',
+        avatarUrl: null,
+        language: 'fr',
+        country: 'FR',
+      });
+      const mockReq = {
+        accessToken: 'access-token',
+      } as unknown as import('express').Request;
+      const result = await controller.me(user, mockReq);
+      expect(result).toMatchObject({ ...user, language: 'fr' });
+    });
+
+    it('falls back gracefully when fetchMe fails', async () => {
+      const user = {
+        id: 'user-1',
+        email: 'thomas@example.com',
+        name: 'Thomas',
+      };
+      oauthClient.fetchMe = jest.fn().mockRejectedValue(new Error('network'));
+      const mockReq = {
+        accessToken: 'access-token',
+      } as unknown as import('express').Request;
+      const result = await controller.me(user, mockReq);
+      expect(result).toMatchObject({
+        ...user,
+        language: 'en',
+        avatarUrl: null,
+      });
     });
   });
 
