@@ -52,6 +52,28 @@ interface WgerExerciseInfo {
 const WGER_BASE = 'https://wger.de/api/v2';
 const ENGLISH_LANGUAGE = 2;
 
+// Map Wger equipment names → our canonical set (case-insensitive key match)
+const EQUIPMENT_MAP: Record<string, string> = {
+  'none (bodyweight exercise)': 'Bodyweight',
+  elastic: 'Resistance Band',
+  'elastic band': 'Resistance Band',
+  'resistance band': 'Resistance Band',
+  'sz-bar': 'Barbell',
+  barbell: 'Barbell',
+  dumbbell: 'Dumbbell',
+  kettlebell: 'Kettlebell',
+  cable: 'Cable',
+  'gym mat': 'Bodyweight',
+  'pull-up bar': 'Pull-up Bar',
+  bench: 'Bench',
+  'incline bench': 'Bench',
+  'swiss ball': 'Swiss Ball',
+};
+
+function normalizeEquipment(name: string): string {
+  return EQUIPMENT_MAP[name.toLowerCase()] ?? name;
+}
+
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Fetch failed ${String(res.status)}: ${url}`);
@@ -90,23 +112,22 @@ async function main(): Promise<void> {
       .createQueryBuilder('e')
       .where('e.name_fr IS NOT NULL')
       .getCount();
+    // Check if bodyweight is properly tagged (as 'Bodyweight', not empty [])
+    const withBodyweight = await repo
+      .createQueryBuilder('e')
+      .where(`e.equipment LIKE '%Bodyweight%'`)
+      .getCount();
 
-    if (withImages > 0 && withFr > 0) {
+    if (withImages > 0 && withFr > 0 && withBodyweight > 0) {
       console.log(
-        `[wger-seed] ${String(count)} exercises with images and FR — skipping.`,
+        `[wger-seed] ${String(count)} exercises fully seeded — skipping.`,
       );
       await dataSource.destroy();
       return;
     }
-    if (withImages === 0) {
-      console.log(
-        `[wger-seed] ${String(count)} exercises found but no images — updating…`,
-      );
-    } else {
-      console.log(
-        `[wger-seed] ${String(count)} exercises found but missing FR translations — updating…`,
-      );
-    }
+    console.log(
+      `[wger-seed] ${String(count)} exercises found — updating (missing: ${!withFr ? 'FR' : ''}${!withBodyweight ? ' equipment-mapping' : ''})…`,
+    );
   }
 
   console.log('[wger-seed] Fetching French language ID from Wger…');
@@ -145,9 +166,13 @@ async function main(): Promise<void> {
         entity.muscleGroups = ex.muscles
           .map((m) => m.name_en)
           .filter((n) => n.length > 0);
-        entity.equipment = ex.equipment
-          .map((e) => e.name)
-          .filter((n) => n.length > 0 && n !== 'none (bodyweight exercise)');
+        entity.equipment = [
+          ...new Set(
+            ex.equipment
+              .map((e) => normalizeEquipment(e.name))
+              .filter((n) => n.length > 0),
+          ),
+        ];
         entity.imageUrl = ex.images.find((img) => img.is_main)?.image ?? null;
         entity.muscleImages = [
           ...ex.muscles.map((m) => ({
