@@ -10,15 +10,14 @@ npm run dev:backend          # NestJS watch mode (port 3000)
 npm run dev:frontend         # Vite dev server (port 5173)
 
 # Tests
-npm run test                 # backend Jest + frontend Vitest (runs on pre-push hook)
-npm run test --workspace=backend -- --testPathPattern="use-case-name"  # single spec
-npm run test --workspace=backend -- --no-coverage  # skip coverage (faster)
+npm run test                 # backend + frontend Vitest (runs on pre-push hook)
+npm run test --workspace=backend -- use-case-name  # specs whose path matches
 
 # Lint + format
-npm run lint                 # ESLint both workspaces
-npm run format               # Prettier whole repo
-cd backend && npx eslint src --max-warnings=0   # backend only
-cd backend && npx prettier --check "src/**/*.ts"
+npm run lint                 # Oxlint (type-aware), whole repo
+npm run format               # Oxfmt, whole repo
+npm run format:check         # what CI checks
+npm run typecheck            # backend (specs included) + frontend
 
 # Type check (excludes spec files)
 npx tsc --noEmit --project backend/tsconfig.build.json
@@ -112,14 +111,12 @@ Design tokens are in `DESIGN.md` and `frontend/tailwind.config.ts`. Reference to
 
 CTAs use `rounded-full` (pill shape). Never use raw hex values in component code.
 
-### ESLint gotchas
+### Lint
 
-- **`import/order`**: sibling imports (`./foo`) must come **before** parent imports (`../../bar`) within the relative-imports group.
-- **`@typescript-eslint/prefer-optional-chain`**: `if (!x || x.foo)` → `if (x?.foo)`.
-- **`@typescript-eslint/no-deprecated`**: avoid deprecated APIs (`React.FormEvent` etc.).
+Oxlint (`.oxlintrc.json`) and Oxfmt (`.oxfmtrc.json`) at the root; no ESLint or Prettier. Spec files relax a few type-aware rules for mocks (see the overrides).
 
 ### Pre-commit / pre-push hooks
 
-- **pre-commit**: lint-staged runs ESLint + Prettier on staged files.
-- **pre-push**: full `npm test` (backend Jest + frontend Vitest). Must pass before push.
+- **pre-commit**: lint-staged runs Oxfmt on staged files.
+- **pre-push**: full `npm test` (backend + frontend Vitest). Must pass before push.
 - Commits require conventional format: `feat(NNN): description`, `fix: ...`, `chore: ...`. No `Co-Authored-By`.
