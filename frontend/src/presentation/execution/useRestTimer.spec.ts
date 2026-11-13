@@ -29,9 +29,12 @@ const mockAudioContext = {
 describe('useRestTimer', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    // Vitest 4+ only lets a mock be called with `new` if its implementation is a function.
     vi.stubGlobal(
       'AudioContext',
-      vi.fn(() => mockAudioContext),
+      vi.fn(function () {
+        return mockAudioContext;
+      }),
     );
   });
 
