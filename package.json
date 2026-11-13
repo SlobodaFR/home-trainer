@@ -21,7 +21,7 @@
     "prepare": "husky"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=26"
   },
   "lint-staged": {
     "backend/src/**/*.ts": [
@@ -42,5 +42,13 @@
     "husky": "^9.1.7",
     "lint-staged": "^15.5.2",
     "prettier": "^3.5.3"
+  },
+  "allowScripts": {
+    "better-sqlite3": true,
+    "esbuild": true,
+    "@nestjs/core": false,
+    "fsevents": false,
+    "@scarf/scarf": false,
+    "unrs-resolver": false
   }
 }
