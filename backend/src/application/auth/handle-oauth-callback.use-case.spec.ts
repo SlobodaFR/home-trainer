@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { HandleOAuthCallbackUseCase } from './handle-oauth-callback.use-case';
 import {
   OAuthClient,
@@ -22,8 +23,8 @@ const mockProfile: UserProfile = {
 
 describe('HandleOAuthCallbackUseCase', () => {
   let useCase: HandleOAuthCallbackUseCase;
-  let oauthClient: jest.Mocked<OAuthClient>;
-  let userRepository: jest.Mocked<UserRepository>;
+  let oauthClient: Mocked<OAuthClient>;
+  let userRepository: Mocked<UserRepository>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -32,13 +33,13 @@ describe('HandleOAuthCallbackUseCase', () => {
         {
           provide: OAuthClient,
           useValue: {
-            exchangeCode: jest.fn().mockResolvedValue(mockTokenPair),
-            fetchUserInfo: jest.fn().mockResolvedValue(mockProfile),
+            exchangeCode: vi.fn().mockResolvedValue(mockTokenPair),
+            fetchUserInfo: vi.fn().mockResolvedValue(mockProfile),
           },
         },
         {
           provide: UserRepository,
-          useValue: { save: jest.fn().mockResolvedValue(undefined) },
+          useValue: { save: vi.fn().mockResolvedValue(undefined) },
         },
       ],
     }).compile();

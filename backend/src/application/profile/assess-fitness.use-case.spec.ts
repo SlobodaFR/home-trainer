@@ -1,5 +1,6 @@
 import { InternalServerErrorException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import type { Mock } from 'vitest';
 import { AssessFitnessUseCase } from './assess-fitness.use-case';
 import { LLMService } from '../../domain/analysis/llm.service';
 
@@ -23,10 +24,10 @@ const INPUT = {
 
 describe('AssessFitnessUseCase', () => {
   let useCase: AssessFitnessUseCase;
-  let llmService: { complete: jest.Mock };
+  let llmService: { complete: Mock };
 
   beforeEach(async () => {
-    llmService = { complete: jest.fn() };
+    llmService = { complete: vi.fn() };
     const module = await Test.createTestingModule({
       providers: [
         AssessFitnessUseCase,

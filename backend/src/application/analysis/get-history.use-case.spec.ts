@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { GetHistoryUseCase } from './get-history.use-case';
 import { SessionAnalysis } from '../../domain/analysis/session-analysis';
 import { SessionAnalysisRepository } from '../../domain/analysis/session-analysis.repository';
@@ -54,16 +55,16 @@ function makeDeps(overrides: {
   analysis?: SessionAnalysis | null;
 }) {
   const sessionRepo = {
-    findByUser: jest.fn().mockResolvedValue(overrides.sessions ?? []),
-  } as unknown as jest.Mocked<SessionRepository>;
+    findByUser: vi.fn().mockResolvedValue(overrides.sessions ?? []),
+  } as unknown as Mocked<SessionRepository>;
 
   const workoutLogRepo = {
-    findBySession: jest.fn().mockResolvedValue(overrides.logs ?? []),
-  } as unknown as jest.Mocked<WorkoutLogRepository>;
+    findBySession: vi.fn().mockResolvedValue(overrides.logs ?? []),
+  } as unknown as Mocked<WorkoutLogRepository>;
 
   const analysisRepo = {
-    findBySessionId: jest.fn().mockResolvedValue(overrides.analysis ?? null),
-  } as unknown as jest.Mocked<SessionAnalysisRepository>;
+    findBySessionId: vi.fn().mockResolvedValue(overrides.analysis ?? null),
+  } as unknown as Mocked<SessionAnalysisRepository>;
 
   return { sessionRepo, workoutLogRepo, analysisRepo };
 }

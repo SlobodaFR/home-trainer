@@ -1,10 +1,11 @@
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { HandleSessionRevokedUseCase } from './handle-session-revoked.use-case';
 import { RevokedSessionRepository } from '../../domain/auth/revoked-session.repository';
 
 describe('HandleSessionRevokedUseCase', () => {
   let useCase: HandleSessionRevokedUseCase;
-  let revokedSessionRepository: jest.Mocked<RevokedSessionRepository>;
+  let revokedSessionRepository: Mocked<RevokedSessionRepository>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -12,7 +13,7 @@ describe('HandleSessionRevokedUseCase', () => {
         HandleSessionRevokedUseCase,
         {
           provide: RevokedSessionRepository,
-          useValue: { markRevoked: jest.fn().mockResolvedValue(undefined) },
+          useValue: { markRevoked: vi.fn().mockResolvedValue(undefined) },
         },
       ],
     }).compile();

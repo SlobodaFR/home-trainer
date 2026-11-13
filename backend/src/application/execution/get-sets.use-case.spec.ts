@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { GetSetsUseCase } from './get-sets.use-case';
 import { WorkoutLog } from '../../domain/execution/workout-log';
 import { WorkoutLogRepository } from '../../domain/execution/workout-log.repository';
@@ -32,8 +33,8 @@ const mockLog: WorkoutLog = {
 
 describe('GetSetsUseCase', () => {
   let useCase: GetSetsUseCase;
-  let sessionRepository: jest.Mocked<SessionRepository>;
-  let workoutLogRepository: jest.Mocked<WorkoutLogRepository>;
+  let sessionRepository: Mocked<SessionRepository>;
+  let workoutLogRepository: Mocked<WorkoutLogRepository>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -41,11 +42,11 @@ describe('GetSetsUseCase', () => {
         GetSetsUseCase,
         {
           provide: SessionRepository,
-          useValue: { findById: jest.fn() },
+          useValue: { findById: vi.fn() },
         },
         {
           provide: WorkoutLogRepository,
-          useValue: { findBySession: jest.fn() },
+          useValue: { findBySession: vi.fn() },
         },
       ],
     }).compile();

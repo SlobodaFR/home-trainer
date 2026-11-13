@@ -1,10 +1,11 @@
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { SetPreferenceUseCase } from './set-preference.use-case';
 import { UserExerciseRepository } from '../../domain/exercise/user-exercise.repository';
 
 describe('SetPreferenceUseCase', () => {
   let useCase: SetPreferenceUseCase;
-  let userExerciseRepository: jest.Mocked<UserExerciseRepository>;
+  let userExerciseRepository: Mocked<UserExerciseRepository>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -12,7 +13,7 @@ describe('SetPreferenceUseCase', () => {
         SetPreferenceUseCase,
         {
           provide: UserExerciseRepository,
-          useValue: { upsertPreference: jest.fn() },
+          useValue: { upsertPreference: vi.fn() },
         },
       ],
     }).compile();

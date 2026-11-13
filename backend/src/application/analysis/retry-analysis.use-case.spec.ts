@@ -1,4 +1,5 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import type { Mocked } from 'vitest';
 import { AnalysisJobService } from './analysis-job.service';
 import { RetryAnalysisUseCase } from './retry-analysis.use-case';
 import { SessionAnalysis } from '../../domain/analysis/session-analysis';
@@ -17,12 +18,12 @@ const base: SessionAnalysis = {
 
 function make(analysis: SessionAnalysis | null) {
   const repo = {
-    findBySessionId: jest.fn().mockResolvedValue(analysis),
-    update: jest.fn().mockResolvedValue(undefined),
-  } as unknown as jest.Mocked<SessionAnalysisRepository>;
+    findBySessionId: vi.fn().mockResolvedValue(analysis),
+    update: vi.fn().mockResolvedValue(undefined),
+  } as unknown as Mocked<SessionAnalysisRepository>;
   const jobService = {
-    run: jest.fn(),
-  } as unknown as jest.Mocked<AnalysisJobService>;
+    run: vi.fn(),
+  } as unknown as Mocked<AnalysisJobService>;
   const useCase = new RetryAnalysisUseCase(repo, jobService);
   return { useCase, repo, jobService };
 }

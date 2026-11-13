@@ -2,18 +2,19 @@ import { HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Response } from 'express';
 import { DataSource } from 'typeorm';
+import type { Mock } from 'vitest';
 import { HealthController } from './health.controller';
 
-const mockJson = jest.fn();
-const mockStatus = jest.fn().mockReturnValue({ json: mockJson });
+const mockJson = vi.fn();
+const mockStatus = vi.fn().mockReturnValue({ json: mockJson });
 const mockRes = { status: mockStatus, json: mockJson } as unknown as Response;
 
 describe('HealthController', () => {
   let controller: HealthController;
-  let dataSource: { query: jest.Mock };
+  let dataSource: { query: Mock };
 
   beforeEach(async () => {
-    dataSource = { query: jest.fn() };
+    dataSource = { query: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [HealthController],
@@ -21,7 +22,7 @@ describe('HealthController', () => {
     }).compile();
 
     controller = module.get<HealthController>(HealthController);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockStatus.mockReturnValue({ json: mockJson });
   });
 

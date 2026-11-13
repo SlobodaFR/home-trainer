@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import type { Mocked } from 'vitest';
 import { GetAnalysisUseCase } from './get-analysis.use-case';
 import { SessionAnalysis } from '../../domain/analysis/session-analysis';
 import { SessionAnalysisRepository } from '../../domain/analysis/session-analysis.repository';
@@ -16,8 +17,8 @@ const mockAnalysis: SessionAnalysis = {
 
 function makeRepo(analysis: SessionAnalysis | null) {
   return {
-    findBySessionId: jest.fn().mockResolvedValue(analysis),
-  } as unknown as jest.Mocked<SessionAnalysisRepository>;
+    findBySessionId: vi.fn().mockResolvedValue(analysis),
+  } as unknown as Mocked<SessionAnalysisRepository>;
 }
 
 describe('GetAnalysisUseCase', () => {

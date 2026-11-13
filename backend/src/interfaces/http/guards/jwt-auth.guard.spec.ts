@@ -2,6 +2,7 @@ import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { AccessTokenPayload } from '../../../domain/auth/access-token-payload';
 import { AccessTokenVerifier } from '../../../domain/auth/access-token-verifier';
@@ -18,17 +19,17 @@ const mockPayload: AccessTokenPayload = {
 function makeContext(
   cookies: Record<string, string>,
   isPublic: boolean,
-  reflector: jest.Mocked<Reflector>,
+  reflector: Mocked<Reflector>,
 ): ExecutionContext {
   reflector.getAllAndOverride.mockReturnValue(isPublic);
   const mockRequest: { cookies: Record<string, string>; user?: unknown } = {
     cookies,
     user: undefined,
   };
-  const mockResponse = { cookie: jest.fn(), clearCookie: jest.fn() };
+  const mockResponse = { cookie: vi.fn(), clearCookie: vi.fn() };
   return {
-    getHandler: jest.fn(),
-    getClass: jest.fn(),
+    getHandler: vi.fn(),
+    getClass: vi.fn(),
     switchToHttp: () => ({
       getRequest: () => mockRequest,
       getResponse: () => mockResponse,
@@ -38,9 +39,9 @@ function makeContext(
 
 describe('JwtAuthGuard', () => {
   let guard: JwtAuthGuard;
-  let reflector: jest.Mocked<Reflector>;
-  let verifier: jest.Mocked<AccessTokenVerifier>;
-  let revokedRepo: jest.Mocked<RevokedSessionRepository>;
+  let reflector: Mocked<Reflector>;
+  let verifier: Mocked<AccessTokenVerifier>;
+  let revokedRepo: Mocked<RevokedSessionRepository>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -48,23 +49,23 @@ describe('JwtAuthGuard', () => {
         JwtAuthGuard,
         {
           provide: Reflector,
-          useValue: { getAllAndOverride: jest.fn() },
+          useValue: { getAllAndOverride: vi.fn() },
         },
         {
           provide: AccessTokenVerifier,
-          useValue: { verify: jest.fn() },
+          useValue: { verify: vi.fn() },
         },
         {
           provide: RevokedSessionRepository,
-          useValue: { getRevokedAt: jest.fn().mockResolvedValue(null) },
+          useValue: { getRevokedAt: vi.fn().mockResolvedValue(null) },
         },
         {
           provide: OAuthClient,
-          useValue: { refresh: jest.fn() },
+          useValue: { refresh: vi.fn() },
         },
         {
           provide: ConfigService,
-          useValue: { get: jest.fn().mockReturnValue('development') },
+          useValue: { get: vi.fn().mockReturnValue('development') },
         },
       ],
     }).compile();

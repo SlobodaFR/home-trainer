@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { GetSessionByIdUseCase } from './get-session-by-id.use-case';
 import { Session } from '../../domain/planning/session';
 import { SessionRepository } from '../../domain/planning/session.repository';
@@ -17,7 +18,7 @@ const mockSession: Session = {
 
 describe('GetSessionByIdUseCase', () => {
   let useCase: GetSessionByIdUseCase;
-  let sessionRepository: jest.Mocked<SessionRepository>;
+  let sessionRepository: Mocked<SessionRepository>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -25,7 +26,7 @@ describe('GetSessionByIdUseCase', () => {
         GetSessionByIdUseCase,
         {
           provide: SessionRepository,
-          useValue: { findById: jest.fn() },
+          useValue: { findById: vi.fn() },
         },
       ],
     }).compile();

@@ -1,5 +1,6 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { LogSetUseCase } from './log-set.use-case';
 import { WorkoutLog } from '../../domain/execution/workout-log';
 import { WorkoutLogRepository } from '../../domain/execution/workout-log.repository';
@@ -43,8 +44,8 @@ const mockLog: WorkoutLog = {
 
 describe('LogSetUseCase', () => {
   let useCase: LogSetUseCase;
-  let sessionRepository: jest.Mocked<SessionRepository>;
-  let workoutLogRepository: jest.Mocked<WorkoutLogRepository>;
+  let sessionRepository: Mocked<SessionRepository>;
+  let workoutLogRepository: Mocked<WorkoutLogRepository>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -52,11 +53,11 @@ describe('LogSetUseCase', () => {
         LogSetUseCase,
         {
           provide: SessionRepository,
-          useValue: { findById: jest.fn() },
+          useValue: { findById: vi.fn() },
         },
         {
           provide: WorkoutLogRepository,
-          useValue: { save: jest.fn() },
+          useValue: { save: vi.fn() },
         },
       ],
     }).compile();

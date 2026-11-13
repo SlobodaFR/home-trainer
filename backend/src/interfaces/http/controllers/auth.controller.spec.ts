@@ -1,6 +1,7 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { AuthController } from './auth.controller';
 import { HandleOAuthCallbackUseCase } from '../../../application/auth/handle-oauth-callback.use-case';
 import { HandleSessionRevokedUseCase } from '../../../application/auth/handle-session-revoked.use-case';
@@ -14,8 +15,8 @@ const mockTokens: TokenPair = {
 
 describe('AuthController', () => {
   let controller: AuthController;
-  let oauthClient: jest.Mocked<OAuthClient>;
-  let handleSessionRevoked: jest.Mocked<HandleSessionRevokedUseCase>;
+  let oauthClient: Mocked<OAuthClient>;
+  let handleSessionRevoked: Mocked<HandleSessionRevokedUseCase>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -24,26 +25,26 @@ describe('AuthController', () => {
         {
           provide: OAuthClient,
           useValue: {
-            authorizeUrl: jest
+            authorizeUrl: vi
               .fn()
               .mockReturnValue(
                 'https://auth.sloboda.fr/authorize?client_id=trainer&redirect_uri=http://localhost:5173/api/auth/callback',
               ),
-            exchangeCode: jest.fn().mockResolvedValue(mockTokens),
+            exchangeCode: vi.fn().mockResolvedValue(mockTokens),
           },
         },
         {
           provide: HandleOAuthCallbackUseCase,
-          useValue: { execute: jest.fn().mockResolvedValue(mockTokens) },
+          useValue: { execute: vi.fn().mockResolvedValue(mockTokens) },
         },
         {
           provide: HandleSessionRevokedUseCase,
-          useValue: { execute: jest.fn().mockResolvedValue(undefined) },
+          useValue: { execute: vi.fn().mockResolvedValue(undefined) },
         },
         {
           provide: ConfigService,
           useValue: {
-            getOrThrow: jest.fn((key: string) => {
+            getOrThrow: vi.fn((key: string) => {
               const map: Record<string, string> = {
                 FRONTEND_URL: 'http://localhost:5173',
                 AUTH_WEBHOOK_SECRET: 'webhook-secret',
@@ -51,7 +52,7 @@ describe('AuthController', () => {
               };
               return map[key];
             }),
-            get: jest.fn().mockReturnValue('development'),
+            get: vi.fn().mockReturnValue('development'),
           },
         },
       ],
@@ -64,7 +65,7 @@ describe('AuthController', () => {
 
   describe('login', () => {
     it('redirects to authorize URL containing client_id', () => {
-      const mockRedirect = jest.fn();
+      const mockRedirect = vi.fn();
       const mockRes = {
         redirect: mockRedirect,
       } as unknown as import('express').Response;
@@ -85,7 +86,7 @@ describe('AuthController', () => {
         email: 'thomas@example.com',
         name: 'Thomas',
       };
-      oauthClient.fetchMe = jest.fn().mockResolvedValue({
+      oauthClient.fetchMe = vi.fn().mockResolvedValue({
         name: 'Thomas',
         email: 'thomas@example.com',
         avatarUrl: null,
@@ -105,7 +106,7 @@ describe('AuthController', () => {
         email: 'thomas@example.com',
         name: 'Thomas',
       };
-      oauthClient.fetchMe = jest.fn().mockRejectedValue(new Error('network'));
+      oauthClient.fetchMe = vi.fn().mockRejectedValue(new Error('network'));
       const mockReq = {
         accessToken: 'access-token',
       } as unknown as import('express').Request;
