@@ -67,7 +67,7 @@
 ## Phase 5: History page + navigation
 
 - [x] **T-5.1**: Create `HistoryPage` component
-  - **Do**: Create `frontend/src/presentation/planning/HistoryPage.tsx`. On mount, calls `getHistory()`. States: loading → spinner; error → "Impossible de charger l'historique"; empty → "Aucune séance complétée pour l'instant"; list → reverse-chronological rows. Each row: `<Link to={\`/sessions/${entry.session.id}\`}>` containing date (`new Date(entry.session.plannedDate + 'T00:00:00')` formatted `dd MMM yyyy` via `Intl.DateTimeFormat('fr-FR')`), exercises (comma-separated `exerciseName`), volume (`${entry.volumeKg.toFixed(1)} kg` or "—" if 0), analysis status chip (`done`→ green pill,`failed`→ red pill,`pending`→ gray pill, null → nothing). Tokens:`bg-soft-cloud`, `text-ink`, `text-mute`, status chips use `success`/`sale`/`hairline` border colors.
+  - **Do**: Create `frontend/src/presentation/planning/HistoryPage.tsx`. On mount, calls `getHistory()`. States: loading → spinner; error → "Impossible de charger l'historique"; empty → "Aucune séance complétée pour l'instant"; list → reverse-chronological rows. Each row: `<Link to={\`/sessions/${entry.session.id}\`}>` containing date (`new Date(entry.session.plannedDate + 'T00:00:00')`formatted`dd MMM yyyy`via`Intl.DateTimeFormat('fr-FR')`), exercises (comma-separated `exerciseName`), volume (`${entry.volumeKg.toFixed(1)} kg` or "—" if 0), analysis status chip (`done`→ green pill,`failed`→ red pill,`pending`→ gray pill, null → nothing). Tokens:`bg-soft-cloud`, `text-ink`, `text-mute`, status chips use `success`/`sale`/`hairline` border colors.
   - **Test**: `npx tsc --noEmit --project frontend/tsconfig.app.json`
 
 - [x] **T-5.2**: Register `/history` route in `App.tsx`
