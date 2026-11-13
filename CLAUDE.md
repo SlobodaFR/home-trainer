@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Development
-npm run dev:backend          # NestJS watch mode (port 3000)
+npm run dev:backend          # tsc build then node --watch dist (port 3000); rebuild to pick up source changes
 npm run dev:frontend         # Vite dev server (port 5173)
 
 # Tests
@@ -19,12 +19,8 @@ npm run format               # Oxfmt, whole repo
 npm run format:check         # what CI checks
 npm run typecheck            # backend (specs included) + frontend
 
-# Type check (excludes spec files)
-npx tsc --noEmit --project backend/tsconfig.build.json
-npx tsc --noEmit --project frontend/tsconfig.app.json
-
-# Seed exercises from Wger (one-time)
-npm run seed:wger --workspace=backend
+# Seed exercises from Wger (one-time; runs the compiled seed, so build the backend first)
+npm run build:backend && npm run seed:wger --workspace=backend
 ```
 
 ## Architecture
