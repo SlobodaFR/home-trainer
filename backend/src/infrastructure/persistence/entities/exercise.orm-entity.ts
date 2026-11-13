@@ -30,7 +30,8 @@ export class ExerciseOrmEntity {
 
   @Column({ type: 'simple-json', name: 'muscle_images', default: '[]' })
   muscleImages!:
-    { url: string; isFront: boolean; isSecondary: boolean }[] | null;
+    | { url: string; isFront: boolean; isSecondary: boolean }[]
+    | null;
 
   @Column({ type: 'text', name: 'youtube_url', nullable: true })
   youtubeUrl!: string | null;

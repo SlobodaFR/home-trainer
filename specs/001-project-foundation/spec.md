@@ -22,24 +22,31 @@ No project exists yet. This feature creates the monorepo scaffold, connects the 
 ## Functional Requirements
 
 ### FR-1: Monorepo with npm workspaces
+
 Root `package.json` declares workspaces `backend` and `frontend`. Scripts `dev:backend` and `dev:frontend` start each app independently.
 
 ### FR-2: NestJS backend skeleton
+
 NestJS app on port 3000. Single `AppModule` with one endpoint: `GET /health` returning `{ status: "ok", db: "ok" }`. TypeORM configured and connected to PostgreSQL. `NestJS Logger` used (no `console.log`). Strict TypeScript.
 
 ### FR-3: React + Vite frontend skeleton
+
 React 18 + Vite + TypeScript + Tailwind CSS on port 5173. Dev server proxies `/api` to `localhost:3000`. Single page: "Trainer" heading. No routing yet.
 
 ### FR-4: PostgreSQL via TypeORM
+
 TypeORM `DataSource` configured from `DATABASE_URL`. `synchronize: false` in production, `true` in dev. No entities yet beyond a placeholder `migrations/` folder. Connection verified in health endpoint.
 
 ### FR-5: Docker single-image build
+
 Multi-stage Dockerfile:
+
 1. Build frontend (`npm run build` in `frontend/`)
 2. Build backend (`npm run build` in `backend/`)
 3. Production image: Node.js, backend dist, frontend dist copied to `backend/dist/public`, served as static by NestJS `ServeStaticModule`
 
 ### FR-6: Environment configuration
+
 `backend/.env.example` documents all variables (at minimum: `DATABASE_URL`, `APP_URL`, `NODE_ENV`). App fails fast on startup if required vars are absent.
 
 ## Error Scenarios

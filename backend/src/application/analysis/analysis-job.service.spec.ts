@@ -109,8 +109,7 @@ function makeDeps(
 describe('AnalysisJobService', () => {
   it('run() returns void immediately without awaiting', () => {
     const { service } = makeDeps();
-    service.run('s-1', 'u-1', 'fr');
-    // TypeScript enforces void return type; no return value to assert
+    expect(service.run('s-1', 'u-1', 'fr')).toBeUndefined();
   });
 
   it('on LLM success, updates status to done with result', async () => {

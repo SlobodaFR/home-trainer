@@ -18,6 +18,8 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "strict": true,
-    "types": ["node", "vitest/globals"]
-  }
+    "types": ["node", "vitest/globals"],
+    "rootDir": "./src"
+  },
+  "include": ["src"]
 }

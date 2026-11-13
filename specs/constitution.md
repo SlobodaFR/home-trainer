@@ -21,16 +21,16 @@ Personal strength & mobility training app for a single user. Goal-driven session
 
 ## 3. Tech Stack
 
-| Component | Choice | Locked? |
-|-----------|--------|---------|
-| Frontend | React + Vite + TypeScript + Tailwind | Locked |
-| Backend | NestJS + TypeORM | Locked |
-| Database | PostgreSQL | Locked |
-| Monorepo | npm workspaces (`backend`, `frontend`) | Locked |
-| Container | Docker (single image) | Locked |
-| Auth provider | home-auth OAuth2 + JWT RS256 | Locked |
-| LLM interface | `LLMService` abstraction (OpenAI default) | Flexible (provider swap OK) |
-| Exercise seed | Wger API → local DB | Flexible (source can change) |
+| Component     | Choice                                    | Locked?                      |
+| ------------- | ----------------------------------------- | ---------------------------- |
+| Frontend      | React + Vite + TypeScript + Tailwind      | Locked                       |
+| Backend       | NestJS + TypeORM                          | Locked                       |
+| Database      | PostgreSQL                                | Locked                       |
+| Monorepo      | npm workspaces (`backend`, `frontend`)    | Locked                       |
+| Container     | Docker (single image)                     | Locked                       |
+| Auth provider | home-auth OAuth2 + JWT RS256              | Locked                       |
+| LLM interface | `LLMService` abstraction (OpenAI default) | Flexible (provider swap OK)  |
+| Exercise seed | Wger API → local DB                       | Flexible (source can change) |
 
 ## 4. Coding Standards
 
