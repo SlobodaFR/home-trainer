@@ -1,5 +1,6 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { PlanningController } from './planning.controller';
 import { CreateGoalUseCase } from '../../../application/planning/create-goal.use-case';
 import { DeleteGoalUseCase } from '../../../application/planning/delete-goal.use-case';
@@ -46,23 +47,23 @@ const mockSession: Session = {
 
 describe('PlanningController', () => {
   let controller: PlanningController;
-  let createGoal: jest.Mocked<CreateGoalUseCase>;
-  let deleteGoal: jest.Mocked<DeleteGoalUseCase>;
-  let getActiveGoal: jest.Mocked<GetActiveGoalUseCase>;
-  let getSessions: jest.Mocked<GetSessionsUseCase>;
-  let getSessionById: jest.Mocked<GetSessionByIdUseCase>;
-  let replanSession: jest.Mocked<ReplanSessionUseCase>;
+  let createGoal: Mocked<CreateGoalUseCase>;
+  let deleteGoal: Mocked<DeleteGoalUseCase>;
+  let getActiveGoal: Mocked<GetActiveGoalUseCase>;
+  let getSessions: Mocked<GetSessionsUseCase>;
+  let getSessionById: Mocked<GetSessionByIdUseCase>;
+  let replanSession: Mocked<ReplanSessionUseCase>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
       controllers: [PlanningController],
       providers: [
-        { provide: CreateGoalUseCase, useValue: { execute: jest.fn() } },
-        { provide: DeleteGoalUseCase, useValue: { execute: jest.fn() } },
-        { provide: GetActiveGoalUseCase, useValue: { execute: jest.fn() } },
-        { provide: GetSessionsUseCase, useValue: { execute: jest.fn() } },
-        { provide: GetSessionByIdUseCase, useValue: { execute: jest.fn() } },
-        { provide: ReplanSessionUseCase, useValue: { execute: jest.fn() } },
+        { provide: CreateGoalUseCase, useValue: { execute: vi.fn() } },
+        { provide: DeleteGoalUseCase, useValue: { execute: vi.fn() } },
+        { provide: GetActiveGoalUseCase, useValue: { execute: vi.fn() } },
+        { provide: GetSessionsUseCase, useValue: { execute: vi.fn() } },
+        { provide: GetSessionByIdUseCase, useValue: { execute: vi.fn() } },
+        { provide: ReplanSessionUseCase, useValue: { execute: vi.fn() } },
       ],
     }).compile();
 

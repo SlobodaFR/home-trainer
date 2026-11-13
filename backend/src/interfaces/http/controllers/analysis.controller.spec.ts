@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { AnalysisController } from './analysis.controller';
 import { GetAnalysisUseCase } from '../../../application/analysis/get-analysis.use-case';
 import { GetHistoryUseCase } from '../../../application/analysis/get-history.use-case';
@@ -26,15 +27,15 @@ const mockHistory = [
 
 describe('AnalysisController', () => {
   let controller: AnalysisController;
-  let getHistory: jest.Mocked<GetHistoryUseCase>;
+  let getHistory: Mocked<GetHistoryUseCase>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
       controllers: [AnalysisController],
       providers: [
-        { provide: GetAnalysisUseCase, useValue: { execute: jest.fn() } },
-        { provide: RetryAnalysisUseCase, useValue: { execute: jest.fn() } },
-        { provide: GetHistoryUseCase, useValue: { execute: jest.fn() } },
+        { provide: GetAnalysisUseCase, useValue: { execute: vi.fn() } },
+        { provide: RetryAnalysisUseCase, useValue: { execute: vi.fn() } },
+        { provide: GetHistoryUseCase, useValue: { execute: vi.fn() } },
       ],
     }).compile();
 

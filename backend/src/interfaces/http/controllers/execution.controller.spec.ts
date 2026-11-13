@@ -1,5 +1,6 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { ExecutionController } from './execution.controller';
 import { FinishSessionUseCase } from '../../../application/execution/finish-session.use-case';
 import { GetSetsUseCase } from '../../../application/execution/get-sets.use-case';
@@ -45,23 +46,23 @@ const mockLog: WorkoutLog = {
 
 describe('ExecutionController', () => {
   let controller: ExecutionController;
-  let startSession: jest.Mocked<StartSessionUseCase>;
-  let pauseSession: jest.Mocked<PauseSessionUseCase>;
-  let resumeSession: jest.Mocked<ResumeSessionUseCase>;
-  let finishSession: jest.Mocked<FinishSessionUseCase>;
-  let logSet: jest.Mocked<LogSetUseCase>;
-  let getSets: jest.Mocked<GetSetsUseCase>;
+  let startSession: Mocked<StartSessionUseCase>;
+  let pauseSession: Mocked<PauseSessionUseCase>;
+  let resumeSession: Mocked<ResumeSessionUseCase>;
+  let finishSession: Mocked<FinishSessionUseCase>;
+  let logSet: Mocked<LogSetUseCase>;
+  let getSets: Mocked<GetSetsUseCase>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
       controllers: [ExecutionController],
       providers: [
-        { provide: StartSessionUseCase, useValue: { execute: jest.fn() } },
-        { provide: PauseSessionUseCase, useValue: { execute: jest.fn() } },
-        { provide: ResumeSessionUseCase, useValue: { execute: jest.fn() } },
-        { provide: FinishSessionUseCase, useValue: { execute: jest.fn() } },
-        { provide: LogSetUseCase, useValue: { execute: jest.fn() } },
-        { provide: GetSetsUseCase, useValue: { execute: jest.fn() } },
+        { provide: StartSessionUseCase, useValue: { execute: vi.fn() } },
+        { provide: PauseSessionUseCase, useValue: { execute: vi.fn() } },
+        { provide: ResumeSessionUseCase, useValue: { execute: vi.fn() } },
+        { provide: FinishSessionUseCase, useValue: { execute: vi.fn() } },
+        { provide: LogSetUseCase, useValue: { execute: vi.fn() } },
+        { provide: GetSetsUseCase, useValue: { execute: vi.fn() } },
       ],
     }).compile();
 

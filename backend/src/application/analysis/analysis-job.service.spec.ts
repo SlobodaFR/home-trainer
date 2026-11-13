@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { AnalysisJobService } from './analysis-job.service';
 import { PromptBuilderService } from './prompt-builder.service';
 import { LLMService } from '../../domain/analysis/llm.service';
@@ -52,39 +53,37 @@ function makeDeps(
   }> = {},
 ) {
   const analysisRepo = {
-    findBySessionId: jest.fn().mockResolvedValue(null),
-    save: jest.fn().mockResolvedValue(mockAnalysis),
-    update: jest.fn().mockResolvedValue(undefined),
+    findBySessionId: vi.fn().mockResolvedValue(null),
+    save: vi.fn().mockResolvedValue(mockAnalysis),
+    update: vi.fn().mockResolvedValue(undefined),
     ...overrides.analysisRepo,
-  } as unknown as jest.Mocked<SessionAnalysisRepository>;
+  } as unknown as Mocked<SessionAnalysisRepository>;
 
   const sessionRepo = {
-    findById: jest.fn().mockResolvedValue(mockSession),
-    findByUser: jest.fn().mockResolvedValue([mockSession]),
-  } as unknown as jest.Mocked<SessionRepository>;
+    findById: vi.fn().mockResolvedValue(mockSession),
+    findByUser: vi.fn().mockResolvedValue([mockSession]),
+  } as unknown as Mocked<SessionRepository>;
 
   const goalRepo = {
-    findActiveByUser: jest.fn().mockResolvedValue(mockGoal),
-  } as unknown as jest.Mocked<GoalRepository>;
+    findActiveByUser: vi.fn().mockResolvedValue(mockGoal),
+  } as unknown as Mocked<GoalRepository>;
 
   const workoutLogRepo = {
-    findBySession: jest.fn().mockResolvedValue([]),
-  } as unknown as jest.Mocked<WorkoutLogRepository>;
+    findBySession: vi.fn().mockResolvedValue([]),
+  } as unknown as Mocked<WorkoutLogRepository>;
 
   const promptBuilder = {
-    build: jest
-      .fn()
-      .mockReturnValue({ systemPrompt: 'sys', userPrompt: 'user' }),
-  } as unknown as jest.Mocked<PromptBuilderService>;
+    build: vi.fn().mockReturnValue({ systemPrompt: 'sys', userPrompt: 'user' }),
+  } as unknown as Mocked<PromptBuilderService>;
 
   const llm = {
-    complete: jest.fn().mockResolvedValue('Great session!'),
+    complete: vi.fn().mockResolvedValue('Great session!'),
     ...overrides.llm,
-  } as unknown as jest.Mocked<LLMService>;
+  } as unknown as Mocked<LLMService>;
 
   const profileRepo = {
-    findByUser: jest.fn().mockResolvedValue(null),
-  } as unknown as jest.Mocked<ProfileRepository>;
+    findByUser: vi.fn().mockResolvedValue(null),
+  } as unknown as Mocked<ProfileRepository>;
 
   const service = new AnalysisJobService(
     analysisRepo,
@@ -128,7 +127,7 @@ describe('AnalysisJobService', () => {
     let calls = 0;
     const { service } = makeDeps({
       llm: {
-        complete: jest.fn().mockImplementation(() => {
+        complete: vi.fn().mockImplementation(() => {
           calls++;
           throw new Error('LLM down');
         }),
@@ -142,7 +141,7 @@ describe('AnalysisJobService', () => {
   it('on two LLM failures, sets status to failed', async () => {
     const { service, analysisRepo } = makeDeps({
       llm: {
-        complete: jest.fn().mockRejectedValue(new Error('LLM down')),
+        complete: vi.fn().mockRejectedValue(new Error('LLM down')),
       },
     });
     service.run('s-1', 'u-1', 'fr');
@@ -155,7 +154,7 @@ describe('AnalysisJobService', () => {
   it('skips if analysis already exists for sessionId', async () => {
     const { service, analysisRepo } = makeDeps({
       analysisRepo: {
-        findBySessionId: jest.fn().mockResolvedValue(mockAnalysis),
+        findBySessionId: vi.fn().mockResolvedValue(mockAnalysis),
       },
     });
     service.run('s-1', 'u-1', 'fr');

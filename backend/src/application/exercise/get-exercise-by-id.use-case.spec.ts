@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { GetExerciseByIdUseCase } from './get-exercise-by-id.use-case';
 import { Exercise } from '../../domain/exercise/exercise';
 import { ExerciseRepository } from '../../domain/exercise/exercise.repository';
@@ -20,8 +21,8 @@ const mockExercise: Exercise = {
 
 describe('GetExerciseByIdUseCase', () => {
   let useCase: GetExerciseByIdUseCase;
-  let exerciseRepository: jest.Mocked<ExerciseRepository>;
-  let userExerciseRepository: jest.Mocked<UserExerciseRepository>;
+  let exerciseRepository: Mocked<ExerciseRepository>;
+  let userExerciseRepository: Mocked<UserExerciseRepository>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -30,14 +31,14 @@ describe('GetExerciseByIdUseCase', () => {
         {
           provide: ExerciseRepository,
           useValue: {
-            findAll: jest.fn(),
-            findById: jest.fn(),
+            findAll: vi.fn(),
+            findById: vi.fn(),
           },
         },
         {
           provide: UserExerciseRepository,
           useValue: {
-            findByUserAndExercise: jest.fn().mockResolvedValue(null),
+            findByUserAndExercise: vi.fn().mockResolvedValue(null),
           },
         },
       ],

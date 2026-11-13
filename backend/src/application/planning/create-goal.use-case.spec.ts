@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { CreateGoalUseCase } from './create-goal.use-case';
 import { PlannerService } from './planner.service';
 import { ExerciseRepository } from '../../domain/exercise/exercise.repository';
@@ -27,11 +28,11 @@ const mockGoal: Goal = {
 
 describe('CreateGoalUseCase', () => {
   let useCase: CreateGoalUseCase;
-  let goalRepository: jest.Mocked<GoalRepository>;
-  let sessionRepository: jest.Mocked<SessionRepository>;
-  let exerciseRepository: jest.Mocked<ExerciseRepository>;
-  let userExerciseRepository: jest.Mocked<UserExerciseRepository>;
-  let plannerService: jest.Mocked<PlannerService>;
+  let goalRepository: Mocked<GoalRepository>;
+  let sessionRepository: Mocked<SessionRepository>;
+  let exerciseRepository: Mocked<ExerciseRepository>;
+  let userExerciseRepository: Mocked<UserExerciseRepository>;
+  let plannerService: Mocked<PlannerService>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -40,33 +41,33 @@ describe('CreateGoalUseCase', () => {
         {
           provide: GoalRepository,
           useValue: {
-            deactivateAllForUser: jest.fn().mockResolvedValue(undefined),
-            save: jest.fn().mockResolvedValue(mockGoal),
+            deactivateAllForUser: vi.fn().mockResolvedValue(undefined),
+            save: vi.fn().mockResolvedValue(mockGoal),
           },
         },
         {
           provide: SessionRepository,
-          useValue: { saveAll: jest.fn().mockResolvedValue(undefined) },
+          useValue: { saveAll: vi.fn().mockResolvedValue(undefined) },
         },
         {
           provide: ExerciseRepository,
           useValue: {
-            findAll: jest.fn().mockResolvedValue({ data: [], total: 0 }),
+            findAll: vi.fn().mockResolvedValue({ data: [], total: 0 }),
           },
         },
         {
           provide: UserExerciseRepository,
-          useValue: { findByUser: jest.fn().mockResolvedValue([]) },
+          useValue: { findByUser: vi.fn().mockResolvedValue([]) },
         },
         {
           provide: PlannerService,
           useValue: {
-            generateSessions: jest.fn().mockReturnValue([] as NewSession[]),
+            generateSessions: vi.fn().mockReturnValue([] as NewSession[]),
           },
         },
         {
           provide: ProfileRepository,
-          useValue: { findByUser: jest.fn().mockResolvedValue(null) },
+          useValue: { findByUser: vi.fn().mockResolvedValue(null) },
         },
       ],
     }).compile();

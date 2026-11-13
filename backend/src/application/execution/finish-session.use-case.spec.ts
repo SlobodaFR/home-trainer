@@ -1,5 +1,6 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { FinishSessionUseCase } from './finish-session.use-case';
 import { Session } from '../../domain/planning/session';
 import { SessionRepository } from '../../domain/planning/session.repository';
@@ -19,8 +20,8 @@ const makeSession = (status: Session['status']): Session => ({
 
 describe('FinishSessionUseCase', () => {
   let useCase: FinishSessionUseCase;
-  let sessionRepository: jest.Mocked<SessionRepository>;
-  let analysisJobService: jest.Mocked<AnalysisJobService>;
+  let sessionRepository: Mocked<SessionRepository>;
+  let analysisJobService: Mocked<AnalysisJobService>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -29,14 +30,14 @@ describe('FinishSessionUseCase', () => {
         {
           provide: SessionRepository,
           useValue: {
-            findById: jest.fn(),
-            saveOutcome: jest.fn(),
-            updateStatus: jest.fn(),
+            findById: vi.fn(),
+            saveOutcome: vi.fn(),
+            updateStatus: vi.fn(),
           },
         },
         {
           provide: AnalysisJobService,
-          useValue: { run: jest.fn() },
+          useValue: { run: vi.fn() },
         },
       ],
     }).compile();

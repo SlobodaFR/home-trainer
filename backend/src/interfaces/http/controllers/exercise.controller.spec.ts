@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { ExerciseController } from './exercise.controller';
 import { GetExerciseByIdUseCase } from '../../../application/exercise/get-exercise-by-id.use-case';
 import {
@@ -37,10 +38,10 @@ const mockExercise: ExerciseWithPreference = {
 
 describe('ExerciseController', () => {
   let controller: ExerciseController;
-  let getExercises: jest.Mocked<GetExercisesUseCase>;
-  let getExerciseById: jest.Mocked<GetExerciseByIdUseCase>;
-  let toggleFavorite: jest.Mocked<ToggleFavoriteUseCase>;
-  let setPreference: jest.Mocked<SetPreferenceUseCase>;
+  let getExercises: Mocked<GetExercisesUseCase>;
+  let getExerciseById: Mocked<GetExerciseByIdUseCase>;
+  let toggleFavorite: Mocked<ToggleFavoriteUseCase>;
+  let setPreference: Mocked<SetPreferenceUseCase>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -48,19 +49,19 @@ describe('ExerciseController', () => {
       providers: [
         {
           provide: GetExercisesUseCase,
-          useValue: { execute: jest.fn() },
+          useValue: { execute: vi.fn() },
         },
         {
           provide: GetExerciseByIdUseCase,
-          useValue: { execute: jest.fn() },
+          useValue: { execute: vi.fn() },
         },
         {
           provide: ToggleFavoriteUseCase,
-          useValue: { execute: jest.fn() },
+          useValue: { execute: vi.fn() },
         },
         {
           provide: SetPreferenceUseCase,
-          useValue: { execute: jest.fn() },
+          useValue: { execute: vi.fn() },
         },
       ],
     }).compile();

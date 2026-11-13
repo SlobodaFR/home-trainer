@@ -49,6 +49,7 @@
     "@nestjs/core": false,
     "fsevents": false,
     "@scarf/scarf": false,
-    "unrs-resolver": false
+    "unrs-resolver": false,
+    "@swc/core": true
   }
 }

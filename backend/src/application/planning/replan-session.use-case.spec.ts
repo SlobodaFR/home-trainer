@@ -1,5 +1,6 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { PlannerService } from './planner.service';
 import { ReplanSessionUseCase } from './replan-session.use-case';
 import { ExerciseRepository } from '../../domain/exercise/exercise.repository';
@@ -38,7 +39,7 @@ const makeSession = (status: Session['status']): Session => ({
 
 describe('ReplanSessionUseCase', () => {
   let useCase: ReplanSessionUseCase;
-  let sessionRepository: jest.Mocked<SessionRepository>;
+  let sessionRepository: Mocked<SessionRepository>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -47,31 +48,31 @@ describe('ReplanSessionUseCase', () => {
         {
           provide: SessionRepository,
           useValue: {
-            findById: jest.fn(),
-            replaceExercises: jest.fn(),
+            findById: vi.fn(),
+            replaceExercises: vi.fn(),
           },
         },
         {
           provide: GoalRepository,
-          useValue: { findActiveByUser: jest.fn().mockResolvedValue(mockGoal) },
+          useValue: { findActiveByUser: vi.fn().mockResolvedValue(mockGoal) },
         },
         {
           provide: ExerciseRepository,
           useValue: {
-            findAll: jest.fn().mockResolvedValue({ data: [], total: 0 }),
+            findAll: vi.fn().mockResolvedValue({ data: [], total: 0 }),
           },
         },
         {
           provide: UserExerciseRepository,
-          useValue: { findByUser: jest.fn().mockResolvedValue([]) },
+          useValue: { findByUser: vi.fn().mockResolvedValue([]) },
         },
         {
           provide: PlannerService,
-          useValue: { buildSessionExercises: jest.fn().mockReturnValue([]) },
+          useValue: { buildSessionExercises: vi.fn().mockReturnValue([]) },
         },
         {
           provide: ProfileRepository,
-          useValue: { findByUser: jest.fn().mockResolvedValue(null) },
+          useValue: { findByUser: vi.fn().mockResolvedValue(null) },
         },
       ],
     }).compile();

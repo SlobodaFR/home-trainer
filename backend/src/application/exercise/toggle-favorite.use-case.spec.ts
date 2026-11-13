@@ -1,10 +1,11 @@
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { ToggleFavoriteUseCase } from './toggle-favorite.use-case';
 import { UserExerciseRepository } from '../../domain/exercise/user-exercise.repository';
 
 describe('ToggleFavoriteUseCase', () => {
   let useCase: ToggleFavoriteUseCase;
-  let userExerciseRepository: jest.Mocked<UserExerciseRepository>;
+  let userExerciseRepository: Mocked<UserExerciseRepository>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -12,7 +13,7 @@ describe('ToggleFavoriteUseCase', () => {
         ToggleFavoriteUseCase,
         {
           provide: UserExerciseRepository,
-          useValue: { upsertFavorite: jest.fn() },
+          useValue: { upsertFavorite: vi.fn() },
         },
       ],
     }).compile();

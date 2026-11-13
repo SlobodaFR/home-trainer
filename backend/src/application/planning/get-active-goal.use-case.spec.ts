@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 import { GetActiveGoalUseCase } from './get-active-goal.use-case';
 import { Goal } from '../../domain/planning/goal';
 import { GoalRepository } from '../../domain/planning/goal.repository';
@@ -19,7 +20,7 @@ const mockGoal: Goal = {
 
 describe('GetActiveGoalUseCase', () => {
   let useCase: GetActiveGoalUseCase;
-  let goalRepository: jest.Mocked<GoalRepository>;
+  let goalRepository: Mocked<GoalRepository>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -27,7 +28,7 @@ describe('GetActiveGoalUseCase', () => {
         GetActiveGoalUseCase,
         {
           provide: GoalRepository,
-          useValue: { findActiveByUser: jest.fn() },
+          useValue: { findActiveByUser: vi.fn() },
         },
       ],
     }).compile();
