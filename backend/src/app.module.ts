@@ -1,7 +1,9 @@
 import { join } from 'path';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import cookieParser from 'cookie-parser';
 import * as Joi from 'joi';
@@ -20,6 +22,7 @@ import { UserExerciseOrmEntity } from './infrastructure/persistence/entities/use
 import { UserFitnessProfileOrmEntity } from './infrastructure/persistence/entities/user-fitness-profile.orm-entity';
 import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-entity';
 import { WorkoutLogOrmEntity } from './infrastructure/persistence/entities/workout-log.orm-entity';
+import { throttlerOptions } from './interfaces/http/throttling';
 import { PlanningModule } from './planning/planning.module';
 import { ProfileModule } from './profile/profile.module';
 
@@ -40,6 +43,7 @@ import { ProfileModule } from './profile/profile.module';
         AUTH_WEBHOOK_SECRET: Joi.string().required(),
         OPENAI_API_KEY: Joi.string().required(),
         LLM_PROVIDER: Joi.string().default('openai'),
+        TRUST_PROXY_HOPS: Joi.number().integer().min(0).default(0),
       }),
     }),
     TypeOrmModule.forRootAsync({
@@ -70,6 +74,7 @@ import { ProfileModule } from './profile/profile.module';
           }),
         ]
       : []),
+    ThrottlerModule.forRoot(throttlerOptions),
     HealthModule,
     AuthModule,
     ExerciseModule,
@@ -78,6 +83,7 @@ import { ProfileModule } from './profile/profile.module';
     AnalysisModule,
     ProfileModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
