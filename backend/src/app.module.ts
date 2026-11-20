@@ -6,6 +6,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import cookieParser from 'cookie-parser';
+import { LoggerModule } from 'nestjs-pino';
 import * as Joi from 'joi';
 import { AnalysisModule } from './analysis/analysis.module';
 import { AuthModule } from './auth/auth.module';
@@ -22,9 +23,13 @@ import { UserExerciseOrmEntity } from './infrastructure/persistence/entities/use
 import { UserFitnessProfileOrmEntity } from './infrastructure/persistence/entities/user-fitness-profile.orm-entity';
 import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-entity';
 import { WorkoutLogOrmEntity } from './infrastructure/persistence/entities/workout-log.orm-entity';
+import { loggerParams } from './infrastructure/logging/logger.config';
 import { throttlerOptions } from './interfaces/http/throttling';
 import { PlanningModule } from './planning/planning.module';
 import { ProfileModule } from './profile/profile.module';
+
+// Never used to key production logs: the schema requires a real secret there.
+const DEV_PSEUDONYM_SECRET = 'dev-only-pseudonym-secret-not-for-production';
 
 @Module({
   imports: [
@@ -43,8 +48,21 @@ import { ProfileModule } from './profile/profile.module';
         AUTH_WEBHOOK_SECRET: Joi.string().required(),
         OPENAI_API_KEY: Joi.string().required(),
         LLM_PROVIDER: Joi.string().default('openai'),
+        // Keys the HMAC that pseudonymizes personal data in logs: mandatory in production.
+        PSEUDONYM_SECRET:
+          process.env.NODE_ENV === 'production'
+            ? Joi.string().min(32).required()
+            : Joi.string().min(32).default(DEV_PSEUDONYM_SECRET),
         TRUST_PROXY_HOPS: Joi.number().integer().min(0).default(0),
       }),
+    }),
+    LoggerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) =>
+        loggerParams(
+          config.get<string>('NODE_ENV'),
+          config.getOrThrow<string>('PSEUDONYM_SECRET'),
+        ),
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
