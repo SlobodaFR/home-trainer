@@ -20,12 +20,12 @@
     "@nestjs/serve-static": "^5.0.3",
     "@nestjs/swagger": "^11.4.8",
     "@nestjs/typeorm": "^11.0.0",
+    "better-sqlite3": "^12.11.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "cookie-parser": "^1.4.7",
-    "jose": "^5.0.0",
     "joi": "^17.13.9",
-    "better-sqlite3": "^12.11.1",
+    "jose": "^5.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "typeorm": "^0.3.31"
@@ -37,6 +37,8 @@
     "@types/cookie-parser": "^1.4.8",
     "@types/express": "^5.0.3",
     "@types/node": "^26.0.0",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.3.2",
     "typescript": "^7.0.2",
     "unplugin-swc": "^2.0.0",
     "vitest": "^5.1.0"
