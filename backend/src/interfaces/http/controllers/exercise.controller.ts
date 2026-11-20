@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { GetExerciseByIdUseCase } from '../../../application/exercise/get-exercise-by-id.use-case';
 import { GetExercisesUseCase } from '../../../application/exercise/get-exercises.use-case';
@@ -22,8 +23,10 @@ import {
 } from '../decorators/current-user.decorator';
 import { ListExercisesDto } from '../dto/list-exercises.dto';
 import { SetPreferenceDto } from '../dto/set-preference.dto';
+import { SameOriginGuard } from '../guards/same-origin.guard';
 
 @Controller('exercises')
+@UseGuards(SameOriginGuard)
 export class ExerciseController {
   constructor(
     private readonly getExercises: GetExercisesUseCase,

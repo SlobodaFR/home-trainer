@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { GetAnalysisUseCase } from '../../../application/analysis/get-analysis.use-case';
 import {
@@ -18,8 +19,10 @@ import {
   CurrentUser,
   CurrentUserPayload,
 } from '../decorators/current-user.decorator';
+import { SameOriginGuard } from '../guards/same-origin.guard';
 
 @Controller()
+@UseGuards(SameOriginGuard)
 export class AnalysisController {
   constructor(
     private readonly getAnalysisUseCase: GetAnalysisUseCase,

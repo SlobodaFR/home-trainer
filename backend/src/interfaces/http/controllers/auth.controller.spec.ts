@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller';
 import { HandleOAuthCallbackUseCase } from '../../../application/auth/handle-oauth-callback.use-case';
 import { HandleSessionRevokedUseCase } from '../../../application/auth/handle-session-revoked.use-case';
 import { OAuthClient, TokenPair } from '../../../domain/auth/oauth-client';
+import { SameOriginGuard } from '../guards/same-origin.guard';
 
 const mockTokens: TokenPair = {
   accessToken: 'access-token',
@@ -56,7 +57,10 @@ describe('AuthController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(SameOriginGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get(AuthController);
     oauthClient = module.get(OAuthClient);

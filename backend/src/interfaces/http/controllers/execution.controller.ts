@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Headers, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { FinishSessionUseCase } from '../../../application/execution/finish-session.use-case';
 import { GetSetsUseCase } from '../../../application/execution/get-sets.use-case';
 import { LogSetUseCase } from '../../../application/execution/log-set.use-case';
@@ -13,8 +21,10 @@ import {
 } from '../decorators/current-user.decorator';
 import { FinishSessionDto } from '../dto/finish-session.dto';
 import { LogSetDto } from '../dto/log-set.dto';
+import { SameOriginGuard } from '../guards/same-origin.guard';
 
 @Controller()
+@UseGuards(SameOriginGuard)
 export class ExecutionController {
   constructor(
     private readonly startSessionUseCase: StartSessionUseCase,
