@@ -4,3 +4,5 @@ node_modules
 coverage
 *.md
 specs
+data
+**/data
