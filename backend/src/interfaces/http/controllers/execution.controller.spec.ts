@@ -13,6 +13,7 @@ import { Session } from '../../../domain/planning/session';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
 import { FinishSessionDto } from '../dto/finish-session.dto';
 import { LogSetDto } from '../dto/log-set.dto';
+import { SameOriginGuard } from '../guards/same-origin.guard';
 
 const mockUser: CurrentUserPayload = {
   id: 'user-1',
@@ -64,7 +65,10 @@ describe('ExecutionController', () => {
         { provide: LogSetUseCase, useValue: { execute: vi.fn() } },
         { provide: GetSetsUseCase, useValue: { execute: vi.fn() } },
       ],
-    }).compile();
+    })
+      .overrideGuard(SameOriginGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get(ExecutionController);
     startSession = module.get(StartSessionUseCase);
