@@ -9,7 +9,7 @@ describe('pseudonymize', () => {
     );
   });
 
-  // Frozen on purpose: changing the normalization would re-key every log pseudonym and PostHog distinct_id.
+  // Frozen on purpose: changing the normalization would re-key every log pseudonym.
   it('ignores case and surrounding spaces', () => {
     expect(pseudonymize(' Alice@Example.COM ', SECRET)).toBe(
       pseudonymize('alice@example.com', SECRET),
