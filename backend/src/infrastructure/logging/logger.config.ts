@@ -38,12 +38,15 @@ function pathOf(url: string | undefined): string {
  * QueryFailedError carries `query`, `parameters` and `driverError` (emails, names, health notes).
  * Only the error type, a sanitized message and stack, and its code are logged.
  */
-export function serializeError(err: unknown): {
+export function serializeError(input: unknown): {
   type: string;
   message: string;
   stack?: string;
   code?: string | number;
 } {
+  // pino-http hands custom serializers an error already serialized by pino-std-serializers;
+  // the original Error is in `.raw`.
+  const err = (input as { raw?: unknown } | null | undefined)?.raw ?? input;
   if (!(err instanceof Error)) {
     return { type: typeof err, message: '' };
   }
