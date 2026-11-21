@@ -15,7 +15,7 @@ async function bootstrap(): Promise<void> {
   // First middleware: every response (API, SPA files, /api/docs) gets the security headers.
   applySecurityHeaders(app, { authBaseUrl: process.env.AUTH_SERVICE_URL });
   applyTrustProxy(app, process.env.TRUST_PROXY_HOPS);
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', { exclude: ['healthz'] });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors({
     origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
