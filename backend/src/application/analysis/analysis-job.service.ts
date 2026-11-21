@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PromptBuilderService } from './prompt-builder.service';
 import { LLMService } from '../../domain/analysis/llm.service';
 import { SessionAnalysisRepository } from '../../domain/analysis/session-analysis.repository';
@@ -6,9 +7,13 @@ import { WorkoutLogRepository } from '../../domain/execution/workout-log.reposit
 import { GoalRepository } from '../../domain/planning/goal.repository';
 import { SessionRepository } from '../../domain/planning/session.repository';
 import { ProfileRepository } from '../../domain/profile/profile.repository';
+import { pseudonymize } from '../../domain/shared/pseudonymize';
+import { sanitizeErrorText } from '../../domain/shared/sanitize-error-text';
 
 @Injectable()
 export class AnalysisJobService {
+  private readonly logger = new Logger(AnalysisJobService.name);
+
   constructor(
     private readonly analysisRepository: SessionAnalysisRepository,
     private readonly sessionRepository: SessionRepository,
@@ -17,6 +22,7 @@ export class AnalysisJobService {
     private readonly promptBuilder: PromptBuilderService,
     private readonly llmService: LLMService,
     private readonly profileRepository: ProfileRepository,
+    private readonly config: ConfigService,
   ) {}
 
   run(sessionId: string, userId: string, locale: string): void {
@@ -80,7 +86,8 @@ export class AnalysisJobService {
         status: 'done',
         result,
       });
-    } catch {
+    } catch (error) {
+      this.logFailure(sessionId, userId, attempt, error);
       if (attempt < 1) {
         await this.analysisRepository.update(analysis.id, {
           retryCount: attempt + 1,
@@ -90,5 +97,25 @@ export class AnalysisJobService {
         await this.analysisRepository.update(analysis.id, { status: 'failed' });
       }
     }
+  }
+
+  /** Pseudonymized user, sanitized error: neither personal data nor upstream bodies in logs. */
+  private logFailure(
+    sessionId: string,
+    userId: string,
+    attempt: number,
+    error: unknown,
+  ): void {
+    const user = pseudonymize(
+      userId,
+      this.config.getOrThrow<string>('PSEUDONYM_SECRET'),
+    );
+    const reason =
+      error instanceof Error
+        ? `${error.constructor.name}: ${sanitizeErrorText(error.message)}`
+        : 'non-error thrown';
+    this.logger.warn(
+      `Analysis attempt ${String(attempt + 1)} failed for session ${sessionId} (user ${user}): ${reason}`,
+    );
   }
 }

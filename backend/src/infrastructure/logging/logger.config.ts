@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { Params } from 'nestjs-pino';
 import { pseudonymize } from '../../domain/shared/pseudonymize';
+import { sanitizeErrorText } from '../../domain/shared/sanitize-error-text';
 
 /**
  * Defense in depth only: pino redaction matches object keys (one level per `*`) and never looks
@@ -32,6 +33,30 @@ function pathOf(url: string | undefined): string {
   return (url ?? '').split('?')[0];
 }
 
+/**
+ * Allow-list: pino's default serializer copies every enumerable property, and TypeORM's
+ * QueryFailedError carries `query`, `parameters` and `driverError` (emails, names, health notes).
+ * Only the error type, a sanitized message and stack, and its code are logged.
+ */
+export function serializeError(err: unknown): {
+  type: string;
+  message: string;
+  stack?: string;
+  code?: string | number;
+} {
+  if (!(err instanceof Error)) {
+    return { type: typeof err, message: '' };
+  }
+  const { code } = err as Error & { code?: unknown };
+  return {
+    type: err.constructor.name,
+    message: sanitizeErrorText(err.message, 500),
+    stack: err.stack ? sanitizeErrorText(err.stack, 4000) : undefined,
+    code:
+      typeof code === 'string' || typeof code === 'number' ? code : undefined,
+  };
+}
+
 interface RequestWithUser extends IncomingMessage {
   user?: { id?: string };
 }
@@ -52,6 +77,7 @@ export function loggerParams(
         }),
         // No headers: Location carries authorization codes, Set-Cookie the session token.
         res: (res: ServerResponse) => ({ statusCode: res.statusCode }),
+        err: serializeError,
       },
       // Correlate a user's requests without ever logging who they are.
       customProps: (req: IncomingMessage) => {

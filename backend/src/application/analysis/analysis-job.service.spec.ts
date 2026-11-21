@@ -1,3 +1,5 @@
+import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { Mocked } from 'vitest';
 import { AnalysisJobService } from './analysis-job.service';
 import { PromptBuilderService } from './prompt-builder.service';
@@ -8,6 +10,9 @@ import { WorkoutLogRepository } from '../../domain/execution/workout-log.reposit
 import { GoalRepository } from '../../domain/planning/goal.repository';
 import { SessionRepository } from '../../domain/planning/session.repository';
 import { ProfileRepository } from '../../domain/profile/profile.repository';
+import { pseudonymize } from '../../domain/shared/pseudonymize';
+
+const PSEUDONYM_SECRET = 'p'.repeat(48);
 
 const mockAnalysis: SessionAnalysis = {
   id: 'a-1',
@@ -93,6 +98,7 @@ function makeDeps(
     promptBuilder,
     llm,
     profileRepo,
+    new ConfigService({ PSEUDONYM_SECRET }),
   );
 
   return {
@@ -159,5 +165,34 @@ describe('AnalysisJobService', () => {
     service.run('s-1', 'u-1', 'fr');
     await new Promise((r) => setTimeout(r, 50));
     expect(analysisRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('logs each failed attempt without personal data or secrets', async () => {
+    const warn = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const { service } = makeDeps({
+      llm: {
+        complete: vi
+          .fn()
+          .mockRejectedValue(
+            new Error(
+              'Incorrect API key sk-proj-****WXYZ for alice@example.com',
+            ),
+          ),
+      },
+    });
+
+    service.run('s-1', 'u-1', 'fr');
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(warn).toHaveBeenCalledTimes(2);
+    const logged = JSON.stringify(warn.mock.calls);
+    expect(logged).toContain(pseudonymize('u-1', PSEUDONYM_SECRET));
+    expect(logged).toContain('Error');
+    expect(logged).not.toContain('u-1');
+    expect(logged).not.toContain('sk-');
+    expect(logged).not.toContain('alice@example.com');
+    warn.mockRestore();
   });
 });
