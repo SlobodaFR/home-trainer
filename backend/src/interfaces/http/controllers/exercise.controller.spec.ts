@@ -13,6 +13,7 @@ import { ExerciseWithPreference } from '../../../domain/exercise/exercise-with-p
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
 import { ListExercisesDto } from '../dto/list-exercises.dto';
 import { SetPreferenceDto } from '../dto/set-preference.dto';
+import { SameOriginGuard } from '../guards/same-origin.guard';
 
 const mockUser: CurrentUserPayload = {
   id: 'user-1',
@@ -64,7 +65,10 @@ describe('ExerciseController', () => {
           useValue: { execute: vi.fn() },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(SameOriginGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get(ExerciseController);
     getExercises = module.get(GetExercisesUseCase);

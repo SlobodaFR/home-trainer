@@ -1,4 +1,11 @@
-import { Body, Controller, Get, NotFoundException, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AssessFitnessUseCase } from '../../../application/profile/assess-fitness.use-case';
 import { GetProfileUseCase } from '../../../application/profile/get-profile.use-case';
 import { SaveProfileUseCase } from '../../../application/profile/save-profile.use-case';
@@ -12,8 +19,10 @@ import {
 } from '../decorators/current-user.decorator';
 import { AssessFitnessDto } from '../dto/assess-fitness.dto';
 import { ConfirmProfileDto } from '../dto/confirm-profile.dto';
+import { SameOriginGuard } from '../guards/same-origin.guard';
 
 @Controller('profile')
+@UseGuards(SameOriginGuard)
 export class ProfileController {
   constructor(
     private readonly assessFitnessUseCase: AssessFitnessUseCase,

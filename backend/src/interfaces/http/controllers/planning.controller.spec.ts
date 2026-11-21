@@ -12,6 +12,7 @@ import { Goal } from '../../../domain/planning/goal';
 import { Session } from '../../../domain/planning/session';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
 import { CreateGoalDto } from '../dto/create-goal.dto';
+import { SameOriginGuard } from '../guards/same-origin.guard';
 
 const mockUser: CurrentUserPayload = {
   id: 'user-1',
@@ -65,7 +66,10 @@ describe('PlanningController', () => {
         { provide: GetSessionByIdUseCase, useValue: { execute: vi.fn() } },
         { provide: ReplanSessionUseCase, useValue: { execute: vi.fn() } },
       ],
-    }).compile();
+    })
+      .overrideGuard(SameOriginGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get(PlanningController);
     createGoal = module.get(CreateGoalUseCase);

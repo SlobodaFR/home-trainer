@@ -4,6 +4,7 @@ import { AnalysisController } from './analysis.controller';
 import { GetAnalysisUseCase } from '../../../application/analysis/get-analysis.use-case';
 import { GetHistoryUseCase } from '../../../application/analysis/get-history.use-case';
 import { RetryAnalysisUseCase } from '../../../application/analysis/retry-analysis.use-case';
+import { SameOriginGuard } from '../guards/same-origin.guard';
 
 const mockUser = { id: 'u-1', email: 'test@example.com', name: 'Test' };
 
@@ -37,7 +38,10 @@ describe('AnalysisController', () => {
         { provide: RetryAnalysisUseCase, useValue: { execute: vi.fn() } },
         { provide: GetHistoryUseCase, useValue: { execute: vi.fn() } },
       ],
-    }).compile();
+    })
+      .overrideGuard(SameOriginGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get(AnalysisController);
     getHistory = module.get(GetHistoryUseCase);

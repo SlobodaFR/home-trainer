@@ -8,6 +8,7 @@ import {
   Req,
   Res,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IsString } from 'class-validator';
@@ -21,6 +22,7 @@ import {
   CurrentUserPayload,
 } from '../decorators/current-user.decorator';
 import { Public } from '../decorators/public.decorator';
+import { SameOriginGuard } from '../guards/same-origin.guard';
 
 class DisconnectDto {
   @IsString()
@@ -86,6 +88,7 @@ export class AuthController {
 
   @HttpCode(204)
   @Post('logout')
+  @UseGuards(SameOriginGuard)
   logout(@Res({ passthrough: true }) res: Response): void {
     clearAuthCookies(res);
   }

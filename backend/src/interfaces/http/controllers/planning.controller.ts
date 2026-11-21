@@ -8,6 +8,7 @@ import {
   Param,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CreateGoalUseCase } from '../../../application/planning/create-goal.use-case';
 import { DeleteGoalUseCase } from '../../../application/planning/delete-goal.use-case';
@@ -22,8 +23,10 @@ import {
   CurrentUserPayload,
 } from '../decorators/current-user.decorator';
 import { CreateGoalDto } from '../dto/create-goal.dto';
+import { SameOriginGuard } from '../guards/same-origin.guard';
 
 @Controller()
+@UseGuards(SameOriginGuard)
 export class PlanningController {
   constructor(
     private readonly createGoalUseCase: CreateGoalUseCase,
