@@ -13,19 +13,23 @@ interface LogLine {
   err?: { type?: string; stack?: string } & Record<string, unknown>;
 }
 
+function queryFailedError(): QueryFailedError {
+  const driverError = Object.assign(
+    new Error('SQLITE_BUSY: database is locked'),
+    { code: 'SQLITE_BUSY' },
+  );
+  return new QueryFailedError(
+    'INSERT INTO workout (name, notes) VALUES (?, ?)',
+    ['Alice Martin', 'alice@example.com'],
+    driverError,
+  );
+}
+
 @Controller()
 class BoomController {
   @Get('boom')
   boom(): never {
-    const driverError = Object.assign(
-      new Error('SQLITE_BUSY: database is locked'),
-      { code: 'SQLITE_BUSY' },
-    );
-    throw new QueryFailedError(
-      'INSERT INTO workout (name, notes) VALUES (?, ?)',
-      ['Alice Martin', 'alice@example.com'],
-      driverError,
-    );
+    throw queryFailedError();
   }
 }
 
@@ -78,7 +82,8 @@ describe('request logging through Nest and pino-http', () => {
       (entry) => entry.context === 'ExceptionsHandler',
     );
     expect(thrown?.err?.stack).toContain('QueryFailedError');
-    // ...and pino-http's completion line carries its own (already serialized) error.
+    // ...and pino-http's completion line carries its own error: the synthetic
+    // 'failed with status code 500' one, since Nest never hands it the thrown error.
     const completion = entries.find((entry) => entry.res !== undefined);
     expect(completion?.err?.type).toBe('Error');
     expect(completion?.err?.stack).toEqual(expect.any(String));
@@ -87,6 +92,24 @@ describe('request logging through Nest and pino-http', () => {
       for (const key of Object.keys(entry?.err ?? {})) {
         expect(['type', 'message', 'stack', 'code']).toContain(key);
       }
+    }
+  });
+
+  it('whitelists a real QueryFailedError logged with { err } through the pino-http wrapper', () => {
+    lines.length = 0;
+
+    app.get(Logger).error({ err: queryFailedError() }, 'db failed');
+
+    const output = lines.join('');
+    expect(output).not.toContain('alice@example.com');
+    expect(output).not.toContain('Alice Martin');
+    expect(output).not.toContain('INSERT INTO');
+    const entry = JSON.parse(lines[0]) as LogLine;
+    expect(entry.err?.type).toBe('QueryFailedError');
+    expect(entry.err?.code).toBe('SQLITE_BUSY');
+    expect(entry.err?.stack).toContain('QueryFailedError');
+    for (const key of Object.keys(entry.err ?? {})) {
+      expect(['type', 'message', 'stack', 'code']).toContain(key);
     }
   });
 });
