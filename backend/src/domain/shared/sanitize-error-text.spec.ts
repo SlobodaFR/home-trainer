@@ -4,7 +4,10 @@ describe('sanitizeErrorText', () => {
   it('strips API keys, including masked ones', () => {
     const text = 'Incorrect API key provided: sk-proj-********WXYZ. Find yours';
 
-    expect(sanitizeErrorText(text)).not.toContain('sk-');
+    const clean = sanitizeErrorText(text);
+
+    expect(clean).not.toContain('sk-');
+    expect(clean).not.toContain('WXYZ');
   });
 
   it('strips email addresses', () => {

@@ -10,6 +10,12 @@ import { ProfileRepository } from '../../domain/profile/profile.repository';
 import { pseudonymize } from '../../domain/shared/pseudonymize';
 import { sanitizeErrorText } from '../../domain/shared/sanitize-error-text';
 
+/** Tracks progress so an escaped error can be logged and the analysis marked failed. */
+interface JobState {
+  analysisId?: string;
+  attempt?: number;
+}
+
 @Injectable()
 export class AnalysisJobService {
   private readonly logger = new Logger(AnalysisJobService.name);
@@ -26,7 +32,23 @@ export class AnalysisJobService {
   ) {}
 
   run(sessionId: string, userId: string, locale: string): void {
-    void this.execute(sessionId, userId, locale, 0);
+    const state: JobState = {};
+    this.execute(sessionId, userId, locale, 0, state).catch(
+      (error: unknown) => {
+        this.logFailure(sessionId, userId, state.attempt ?? 0, error);
+        void this.markFailed(state.analysisId);
+      },
+    );
+  }
+
+  /** Best effort: the caller is already handling a failure, this must never reject. */
+  private async markFailed(analysisId: string | undefined): Promise<void> {
+    if (!analysisId) return;
+    try {
+      await this.analysisRepository.update(analysisId, { status: 'failed' });
+    } catch {
+      // The database is the likely culprit: nothing more to do than the warning already logged.
+    }
   }
 
   private async execute(
@@ -34,7 +56,9 @@ export class AnalysisJobService {
     userId: string,
     locale: string,
     attempt: number,
+    state: JobState,
   ): Promise<void> {
+    state.attempt = attempt;
     const existing = await this.analysisRepository.findBySessionId(sessionId);
     if (existing) return;
 
@@ -45,6 +69,7 @@ export class AnalysisJobService {
       result: null,
       retryCount: attempt,
     });
+    state.analysisId = analysis.id;
 
     try {
       const [currentSession, allSessions, goal, profile] = await Promise.all([
@@ -92,7 +117,7 @@ export class AnalysisJobService {
         await this.analysisRepository.update(analysis.id, {
           retryCount: attempt + 1,
         });
-        await this.execute(sessionId, userId, locale, attempt + 1);
+        await this.execute(sessionId, userId, locale, attempt + 1, state);
       } else {
         await this.analysisRepository.update(analysis.id, { status: 'failed' });
       }
