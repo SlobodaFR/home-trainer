@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PromptBuilderService } from './prompt-builder.service';
 import { LLMService } from '../../domain/analysis/llm.service';
 import { SessionAnalysisRepository } from '../../domain/analysis/session-analysis.repository';
@@ -6,9 +7,19 @@ import { WorkoutLogRepository } from '../../domain/execution/workout-log.reposit
 import { GoalRepository } from '../../domain/planning/goal.repository';
 import { SessionRepository } from '../../domain/planning/session.repository';
 import { ProfileRepository } from '../../domain/profile/profile.repository';
+import { pseudonymize } from '../../domain/shared/pseudonymize';
+import { sanitizeErrorText } from '../../domain/shared/sanitize-error-text';
+
+/** Tracks progress so an escaped error can be logged and the analysis marked failed. */
+interface JobState {
+  analysisId?: string;
+  attempt?: number;
+}
 
 @Injectable()
 export class AnalysisJobService {
+  private readonly logger = new Logger(AnalysisJobService.name);
+
   constructor(
     private readonly analysisRepository: SessionAnalysisRepository,
     private readonly sessionRepository: SessionRepository,
@@ -17,10 +28,27 @@ export class AnalysisJobService {
     private readonly promptBuilder: PromptBuilderService,
     private readonly llmService: LLMService,
     private readonly profileRepository: ProfileRepository,
+    private readonly config: ConfigService,
   ) {}
 
   run(sessionId: string, userId: string, locale: string): void {
-    void this.execute(sessionId, userId, locale, 0);
+    const state: JobState = {};
+    this.execute(sessionId, userId, locale, 0, state).catch(
+      (error: unknown) => {
+        this.logFailure(sessionId, userId, state.attempt ?? 0, error);
+        void this.markFailed(state.analysisId);
+      },
+    );
+  }
+
+  /** Best effort: the caller is already handling a failure, this must never reject. */
+  private async markFailed(analysisId: string | undefined): Promise<void> {
+    if (!analysisId) return;
+    try {
+      await this.analysisRepository.update(analysisId, { status: 'failed' });
+    } catch {
+      // The database is the likely culprit: nothing more to do than the warning already logged.
+    }
   }
 
   private async execute(
@@ -28,7 +56,9 @@ export class AnalysisJobService {
     userId: string,
     locale: string,
     attempt: number,
+    state: JobState,
   ): Promise<void> {
+    state.attempt = attempt;
     const existing = await this.analysisRepository.findBySessionId(sessionId);
     if (existing) return;
 
@@ -39,6 +69,7 @@ export class AnalysisJobService {
       result: null,
       retryCount: attempt,
     });
+    state.analysisId = analysis.id;
 
     try {
       const [currentSession, allSessions, goal, profile] = await Promise.all([
@@ -80,15 +111,36 @@ export class AnalysisJobService {
         status: 'done',
         result,
       });
-    } catch {
+    } catch (error) {
+      this.logFailure(sessionId, userId, attempt, error);
       if (attempt < 1) {
         await this.analysisRepository.update(analysis.id, {
           retryCount: attempt + 1,
         });
-        await this.execute(sessionId, userId, locale, attempt + 1);
+        await this.execute(sessionId, userId, locale, attempt + 1, state);
       } else {
         await this.analysisRepository.update(analysis.id, { status: 'failed' });
       }
     }
+  }
+
+  /** Pseudonymized user, sanitized error: neither personal data nor upstream bodies in logs. */
+  private logFailure(
+    sessionId: string,
+    userId: string,
+    attempt: number,
+    error: unknown,
+  ): void {
+    const user = pseudonymize(
+      userId,
+      this.config.getOrThrow<string>('PSEUDONYM_SECRET'),
+    );
+    const reason =
+      error instanceof Error
+        ? `${error.constructor.name}: ${sanitizeErrorText(error.message)}`
+        : 'non-error thrown';
+    this.logger.warn(
+      `Analysis attempt ${String(attempt + 1)} failed for session ${sessionId} (user ${user}): ${reason}`,
+    );
   }
 }
