@@ -195,4 +195,53 @@ describe('AnalysisJobService', () => {
     expect(logged).not.toContain('alice@example.com');
     warn.mockRestore();
   });
+
+  it.each(['findBySessionId', 'save'])(
+    'logs one sanitized warning and leaks no unhandled rejection when %s rejects',
+    async (method) => {
+      const warn = vi
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+      const unhandled = vi.fn();
+      process.on('unhandledRejection', unhandled);
+      const { service } = makeDeps({
+        analysisRepo: {
+          [method]: vi
+            .fn()
+            .mockRejectedValue(new Error('SQLITE_BUSY alice@example.com')),
+        },
+      });
+
+      service.run('s-1', 'u-1', 'fr');
+      await new Promise((r) => setTimeout(r, 100));
+      process.off('unhandledRejection', unhandled);
+
+      expect(unhandled).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledTimes(1);
+      const logged = JSON.stringify(warn.mock.calls);
+      expect(logged).not.toContain('alice@example.com');
+      expect(logged).not.toContain('u-1');
+      warn.mockRestore();
+    },
+  );
+
+  it('marks the analysis failed when an unexpected error escapes after it was created', async () => {
+    const warn = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const update = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('db down'))
+      .mockResolvedValue(undefined);
+    const { service } = makeDeps({
+      analysisRepo: { update },
+      llm: { complete: vi.fn().mockRejectedValue(new Error('LLM down')) },
+    });
+
+    service.run('s-1', 'u-1', 'fr');
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(update).toHaveBeenCalledWith('a-1', { status: 'failed' });
+    warn.mockRestore();
+  });
 });

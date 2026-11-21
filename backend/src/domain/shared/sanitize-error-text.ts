@@ -1,4 +1,4 @@
-const API_KEY = /sk-[A-Za-z0-9_.-]+/g;
+const API_KEY = /sk-[A-Za-z0-9_.*-]+/g;
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 const MAX_LENGTH = 200;
 
