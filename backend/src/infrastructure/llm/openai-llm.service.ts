@@ -2,6 +2,28 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LLMService } from '../../domain/analysis/llm.service';
 
+interface OpenAIErrorBody {
+  error?: { type?: unknown; code?: unknown };
+}
+
+/**
+ * Status plus the parsed error type/code only: OpenAI's 401 bodies echo the (masked) API key
+ * and others may echo prompt fragments, so the raw body never goes into an error message.
+ */
+function describeError(status: number, body: string): string {
+  const base = `OpenAI error ${String(status)}`;
+  try {
+    const { error } = JSON.parse(body) as OpenAIErrorBody;
+    const labels = [error?.type, error?.code].filter(
+      (label): label is string =>
+        typeof label === 'string' && /^[a-z0-9_.-]{1,64}$/i.test(label),
+    );
+    return labels.length > 0 ? `${base} (${labels.join('/')})` : base;
+  } catch {
+    return base;
+  }
+}
+
 interface OpenAIResponse {
   choices: { message: { content: string } }[];
 }
@@ -32,9 +54,7 @@ export class OpenAILLMService extends LLMService {
     });
 
     if (!res.ok) {
-      throw new Error(
-        `OpenAI error ${String(res.status)}: ${await res.text()}`,
-      );
+      throw new Error(describeError(res.status, await res.text()));
     }
 
     const data = (await res.json()) as OpenAIResponse;

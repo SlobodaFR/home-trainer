@@ -1,6 +1,7 @@
 import type { IncomingMessage } from 'http';
 import { Writable } from 'stream';
 import pino from 'pino';
+import { QueryFailedError } from 'typeorm';
 import { pseudonymize } from '../../domain/shared/pseudonymize';
 import { loggerParams, REDACT_PATHS } from './logger.config';
 
@@ -108,5 +109,80 @@ describe('logger configuration', () => {
         .transport,
     ).toEqual({ target: 'pino-pretty' });
     expect(options().transport).toBeUndefined();
+  });
+
+  // Nest logs any non-HTTP exception as { err }; pino's default serializer would copy
+  // QueryFailedError.parameters / query / driverError (emails, names, health notes).
+  it('never logs the parameters or query of a failed SQL statement', () => {
+    const lines: string[] = [];
+    const stream = new Writable({
+      write(chunk: Buffer, _encoding, callback) {
+        lines.push(chunk.toString());
+        callback();
+      },
+    });
+    const logger = pino(
+      {
+        redact: REDACT_PATHS,
+        serializers: {
+          err: (options().serializers as { err: Serializer }).err as (
+            value: unknown,
+          ) => object,
+        },
+      },
+      stream,
+    );
+    const driverError = Object.assign(
+      new Error('SQLITE_BUSY: database is locked'),
+      {
+        code: 'SQLITE_BUSY',
+      },
+    );
+    const error = new QueryFailedError(
+      'INSERT INTO users (email, name) VALUES (?, ?)',
+      ['alice@example.com', 'Alice Martin', 'injured knee, post-surgery'],
+      driverError,
+    );
+
+    logger.error({ err: error }, 'ExceptionsHandler');
+
+    const output = lines.join('');
+    expect(output).not.toContain('alice@example.com');
+    expect(output).not.toContain('Alice Martin');
+    expect(output).not.toContain('injured knee');
+    expect(output).not.toContain('INSERT INTO');
+    expect(output).toContain('SQLITE_BUSY');
+    expect(output).toContain('QueryFailedError');
+  });
+
+  it('keeps only type, message, stack and code of an error', () => {
+    const err = options().serializers as { err: Serializer };
+
+    const serialized = err.err(
+      Object.assign(new Error('boom'), {
+        code: 'E1',
+        response: { secret: 'x' },
+        config: { headers: 'y' },
+        cause: new Error('inner alice@example.com'),
+      }),
+    ) as Record<string, unknown>;
+
+    expect(Object.keys(serialized).sort()).toEqual([
+      'code',
+      'message',
+      'stack',
+      'type',
+    ]);
+  });
+
+  it('strips keys and emails from the logged message', () => {
+    const err = options().serializers as { err: Serializer };
+
+    const serialized = err.err(
+      new Error('Incorrect API key sk-proj-****WXYZ for bob@example.com'),
+    ) as { message: string; stack: string };
+
+    expect(JSON.stringify(serialized)).not.toContain('sk-');
+    expect(JSON.stringify(serialized)).not.toContain('bob@example.com');
   });
 });
