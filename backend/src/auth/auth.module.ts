@@ -11,6 +11,7 @@ import { UserRepository } from '../domain/auth/user.repository';
 import { HttpOAuthClient } from '../infrastructure/auth/http-oauth-client';
 import { SingleFlightOAuthClient } from '../infrastructure/auth/single-flight-oauth-client';
 import { JwksAccessTokenVerifier } from '../infrastructure/auth/jwks-access-token-verifier';
+import { WebhookAuthenticator } from '../infrastructure/auth/webhook-authenticator';
 import { RevokedSessionOrmEntity } from '../infrastructure/persistence/entities/revoked-session.orm-entity';
 import { UserOrmEntity } from '../infrastructure/persistence/entities/user.orm-entity';
 import { TypeOrmRevokedSessionRepository } from '../infrastructure/persistence/repositories/typeorm-revoked-session.repository';
@@ -24,6 +25,7 @@ import { JwtAuthGuard } from '../interfaces/http/guards/jwt-auth.guard';
   providers: [
     HandleOAuthCallbackUseCase,
     HandleSessionRevokedUseCase,
+    WebhookAuthenticator,
     {
       provide: OAuthClient,
       inject: [ConfigService],

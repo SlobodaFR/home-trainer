@@ -9,6 +9,8 @@ import { setupSwagger } from './interfaces/http/swagger';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    // Keeps the exact bytes of JSON bodies: the logout webhook signature is computed over them.
+    rawBody: true,
     bufferLogs: true,
   });
   app.useLogger(app.get(Logger));

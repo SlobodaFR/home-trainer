@@ -57,6 +57,48 @@ describe('environment schema', () => {
     expect(error).toBeUndefined();
   });
 
+  describe('AUTH_WEBHOOK_SIGNING_SECRET (optional, 64 hex)', () => {
+    const SECRET =
+      '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f';
+
+    it('is optional: absent or blank means only the legacy ?secret= path', () => {
+      expect(validate(BASE_ENV).error).toBeUndefined();
+      expect(
+        validate({ ...BASE_ENV, AUTH_WEBHOOK_SIGNING_SECRET: '' }).error,
+      ).toBeUndefined();
+    });
+
+    it('accepts 64 lower-case hex characters', () => {
+      expect(
+        validate({ ...BASE_ENV, AUTH_WEBHOOK_SIGNING_SECRET: SECRET }).error,
+      ).toBeUndefined();
+    });
+
+    it('validates outside production too (development, test)', () => {
+      for (const NODE_ENV of ['development', 'test']) {
+        expect(
+          validate(
+            { ...BASE_ENV, AUTH_WEBHOOK_SIGNING_SECRET: SECRET.toUpperCase() },
+            { NODE_ENV },
+          ).error?.message,
+        ).toContain('AUTH_WEBHOOK_SIGNING_SECRET');
+      }
+    });
+
+    it.each([
+      ['too short', SECRET.slice(0, 62)],
+      ['too long', `${SECRET}00`],
+      ['not hex', 'z'.repeat(64)],
+      ['upper-case (home-auth generates lower-case)', SECRET.toUpperCase()],
+      ['surrounded by spaces', ` ${SECRET} `],
+    ])('refuses a malformed value (%s): startup stops', (_label, value) => {
+      expect(
+        validate({ ...BASE_ENV, AUTH_WEBHOOK_SIGNING_SECRET: value }).error
+          ?.message,
+      ).toContain('AUTH_WEBHOOK_SIGNING_SECRET');
+    });
+  });
+
   it('keeps PSEUDONYM_SECRET mandatory in production only', () => {
     expect(
       validate(BASE_ENV, { NODE_ENV: 'production' }).error?.message,
