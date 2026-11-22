@@ -7,11 +7,11 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import cookieParser from 'cookie-parser';
 import { LoggerModule } from 'nestjs-pino';
-import * as Joi from 'joi';
 import { AnalysisModule } from './analysis/analysis.module';
 import { AuthModule } from './auth/auth.module';
 import { ExecutionModule } from './execution/execution.module';
 import { ExerciseModule } from './exercise/exercise.module';
+import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { HealthModule } from './health/health.module';
 import { ExerciseOrmEntity } from './infrastructure/persistence/entities/exercise.orm-entity';
 import { GoalOrmEntity } from './infrastructure/persistence/entities/goal.orm-entity';
@@ -23,38 +23,17 @@ import { UserExerciseOrmEntity } from './infrastructure/persistence/entities/use
 import { UserFitnessProfileOrmEntity } from './infrastructure/persistence/entities/user-fitness-profile.orm-entity';
 import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-entity';
 import { WorkoutLogOrmEntity } from './infrastructure/persistence/entities/workout-log.orm-entity';
+import { createEnvSchema } from './infrastructure/config/env.schema';
 import { loggerParams } from './infrastructure/logging/logger.config';
 import { throttlerOptions } from './interfaces/http/throttling';
 import { PlanningModule } from './planning/planning.module';
 import { ProfileModule } from './profile/profile.module';
 
-// Never used to key production logs: the schema requires a real secret there.
-const DEV_PSEUDONYM_SECRET = 'dev-only-pseudonym-secret-not-for-production';
-
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      validationSchema: Joi.object({
-        DATABASE_PATH: Joi.string().default('data/trainer.sqlite'),
-        FRONTEND_URL: Joi.string().default('http://localhost:5173'),
-        PORT: Joi.number().default(3000),
-        NODE_ENV: Joi.string()
-          .valid('development', 'production', 'test')
-          .default('development'),
-        AUTH_SERVICE_URL: Joi.string().required(),
-        AUTH_CLIENT_ID: Joi.string().required(),
-        AUTH_CLIENT_SECRET: Joi.string().required(),
-        AUTH_WEBHOOK_SECRET: Joi.string().required(),
-        OPENAI_API_KEY: Joi.string().required(),
-        LLM_PROVIDER: Joi.string().default('openai'),
-        // Keys the HMAC that pseudonymizes personal data in logs: mandatory in production.
-        PSEUDONYM_SECRET:
-          process.env.NODE_ENV === 'production'
-            ? Joi.string().min(32).required()
-            : Joi.string().min(32).default(DEV_PSEUDONYM_SECRET),
-        TRUST_PROXY_HOPS: Joi.number().integer().min(0).default(0),
-      }),
+      validationSchema: createEnvSchema(process.env),
     }),
     LoggerModule.forRootAsync({
       inject: [ConfigService],
@@ -94,6 +73,7 @@ const DEV_PSEUDONYM_SECRET = 'dev-only-pseudonym-secret-not-for-production';
       : []),
     ThrottlerModule.forRoot(throttlerOptions),
     HealthModule,
+    FeatureFlagsModule,
     AuthModule,
     ExerciseModule,
     PlanningModule,

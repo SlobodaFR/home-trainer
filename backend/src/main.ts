@@ -12,6 +12,8 @@ async function bootstrap(): Promise<void> {
     bufferLogs: true,
   });
   app.useLogger(app.get(Logger));
+  // Lets providers clean up on SIGTERM (runtime health monitor, OpenFeature client).
+  app.enableShutdownHooks();
   // First middleware: every response (API, SPA files, /api/docs) gets the security headers.
   applySecurityHeaders(app, { authBaseUrl: process.env.AUTH_SERVICE_URL });
   applyTrustProxy(app, process.env.TRUST_PROXY_HOPS);
