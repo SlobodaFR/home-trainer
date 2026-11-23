@@ -36,5 +36,8 @@ COPY --from=backend-build /app/backend/package.json backend/package.json
 COPY backend/entrypoint.sh backend/entrypoint.sh
 RUN mkdir -p /app/backend/data && chmod +x /app/backend/entrypoint.sh
 EXPOSE 3000
+# /healthz est interne (bloqué par Caddy). `fetch` de Node : l'image n'a pas besoin de curl.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD ["node", "-e", "fetch('http://127.0.0.1:3000/healthz').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
 WORKDIR /app/backend
 CMD ["sh", "entrypoint.sh"]
