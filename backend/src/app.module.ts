@@ -28,6 +28,7 @@ import { loggerParams } from './infrastructure/logging/logger.config';
 import { throttlerOptions } from './interfaces/http/throttling';
 import { PlanningModule } from './planning/planning.module';
 import { ProfileModule } from './profile/profile.module';
+import { TelemetryModule } from './telemetry/telemetry.module';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { ProfileModule } from './profile/profile.module';
     ThrottlerModule.forRoot(throttlerOptions),
     HealthModule,
     FeatureFlagsModule,
+    TelemetryModule,
     AuthModule,
     ExerciseModule,
     PlanningModule,

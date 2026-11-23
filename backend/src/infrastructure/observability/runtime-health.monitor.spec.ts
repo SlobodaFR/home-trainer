@@ -1,6 +1,15 @@
 import type { MockInstance } from 'vitest';
 import { Logger } from '@nestjs/common';
+import { Telemetry, TelemetryEvent } from '../../domain/shared/telemetry';
 import { RuntimeHealthMonitor } from './runtime-health.monitor';
+
+class FakeTelemetry extends Telemetry {
+  readonly captured: TelemetryEvent[] = [];
+
+  capture(event: TelemetryEvent): void {
+    this.captured.push(event);
+  }
+}
 
 function blockEventLoop(ms: number): void {
   const end = Date.now() + ms;
@@ -12,12 +21,14 @@ function blockEventLoop(ms: number): void {
 const tick = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe('RuntimeHealthMonitor', () => {
+  let telemetry: FakeTelemetry;
   let monitor: RuntimeHealthMonitor;
   let warn: MockInstance;
   let log: MockInstance;
 
   beforeEach(() => {
-    monitor = new RuntimeHealthMonitor();
+    telemetry = new FakeTelemetry();
+    monitor = new RuntimeHealthMonitor(telemetry);
     log = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     warn = vi
       .spyOn(Logger.prototype, 'warn')
@@ -35,7 +46,7 @@ describe('RuntimeHealthMonitor', () => {
     expect(monitor.lastSample).toBeNull();
   });
 
-  it('measures an event-loop block, logs it and warns on p99', async () => {
+  it('measures an event-loop block, reports it, logs it and warns on p99', async () => {
     await tick(50);
     blockEventLoop(500);
     await tick(50);
@@ -47,6 +58,10 @@ describe('RuntimeHealthMonitor', () => {
     expect(sample.heap_used_mb).toBeGreaterThan(0);
     expect(sample.rss_mb).toBeGreaterThan(0);
     expect(monitor.lastSample).toEqual(sample);
+    expect(telemetry.captured).toEqual([
+      { name: 'runtime_health', properties: sample },
+    ]);
+    // Deliberate: the log line stays, it is the only trace when POSTHOG_API_KEY is absent.
     expect(JSON.stringify(log.mock.calls)).toContain('runtime_health');
     expect(JSON.stringify(warn.mock.calls)).toContain('p99');
   });
@@ -69,5 +84,40 @@ describe('RuntimeHealthMonitor', () => {
     expect(() => {
       monitor.stop();
     }).not.toThrow();
+  });
+
+  it('reports runtime_health with exactly the six shared properties, as numbers', () => {
+    monitor.sample();
+
+    const event = telemetry.captured[0];
+    expect(event.name).toBe('runtime_health');
+    expect(Object.keys(event.properties).toSorted()).toEqual([
+      'elu',
+      'heap_used_mb',
+      'lag_max_ms',
+      'lag_p50_ms',
+      'lag_p99_ms',
+      'rss_mb',
+    ]);
+    expect(
+      Object.values(event.properties).every((v) => typeof v === 'number'),
+    ).toBe(true);
+  });
+
+  it('samples every 60 s from the start, once per period', () => {
+    monitor.stop();
+    vi.useFakeTimers();
+    try {
+      monitor.start();
+      vi.advanceTimersByTime(59_999);
+      expect(telemetry.captured).toHaveLength(0);
+      vi.advanceTimersByTime(1);
+      expect(telemetry.captured).toHaveLength(1);
+      vi.advanceTimersByTime(120_000);
+      expect(telemetry.captured).toHaveLength(3);
+    } finally {
+      monitor.stop();
+      vi.useRealTimers();
+    }
   });
 });

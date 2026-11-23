@@ -5,6 +5,7 @@ import {
   OnApplicationBootstrap,
   OnApplicationShutdown,
 } from '@nestjs/common';
+import { Telemetry } from '../../domain/shared/telemetry';
 
 // Derived: @types/node does not export these interfaces from 'perf_hooks' in every version.
 type IntervalHistogram = ReturnType<typeof monitorEventLoopDelay>;
@@ -29,7 +30,7 @@ const round = (value: number, digits: number) => Number(value.toFixed(digits));
 
 /**
  * Event-loop health: delay percentiles, utilization and memory, sampled every minute, sent as
- * a log line and kept for /healthz. Known sources of blocking: synchronous SQLite
+ * runtime_health telemetry and a log line, and kept for /healthz. Known sources of blocking: synchronous SQLite
  * (better-sqlite3) and CPU-bound crypto.
  */
 @Injectable()
@@ -41,6 +42,8 @@ export class RuntimeHealthMonitor
   private timer: NodeJS.Timeout | null = null;
   private previousUtilization: EventLoopUtilization | null = null;
   lastSample: RuntimeHealthSample | null = null;
+
+  constructor(private readonly telemetry: Telemetry) {}
 
   onApplicationBootstrap(): void {
     this.start();
@@ -89,6 +92,8 @@ export class RuntimeHealthMonitor
     histogram?.reset();
 
     this.lastSample = sample;
+    this.telemetry.capture({ name: 'runtime_health', properties: sample });
+    // Kept on purpose: with no POSTHOG_API_KEY (NOOP adapter) this log line is the only trace.
     this.logger.log(`runtime_health ${JSON.stringify(sample)}`);
     if (sample.lag_p99_ms > LAG_WARN_P99_MS) {
       this.logger.warn(
