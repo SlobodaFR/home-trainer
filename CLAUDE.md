@@ -64,6 +64,8 @@ interfaces/http/
 
 **Auth**: `JwtAuthGuard` is a global `APP_GUARD` (registered in `AuthModule`). Every route is protected by default. Use `@Public()` to opt out. `@CurrentUser()` param decorator extracts `{ id, email, name }` from `request.user`.
 
+**Access token claims (flag `auth-verify-token-claims`)**: `JwksAccessTokenVerifier` verifies the RS256 signature against the home-auth JWKS. When the flag is on in home-features (code default `false`: signature, expiry and mandatory claims only, as before), it also requires `aud` = `AUTH_CLIENT_ID`, `iss` = origin of `AUTH_SERVICE_URL` and `alg` = `RS256` (home-auth contract PC3). Reading the flag never blocks nor fails a request (30 s memo, last known value, code default); `FEATURES_PIN_AUTH_VERIFY_TOKEN_CLAIMS=true|false` forces it. Contract PC4 (`/me` rejects a token whose `aud` is not a single existing client) is enforced by home-auth: this service only forwards its own access token.
+
 **Session auth check pattern**: `if (session?.userId !== userId) throw new NotFoundException(...)` — optional chain, not `!session ||`.
 
 **Error codes**: `NotFoundException` → 404, `ConflictException` → 409, class-validator `ValidationPipe` → 400.
