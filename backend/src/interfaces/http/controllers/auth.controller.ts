@@ -5,6 +5,7 @@ import {
   HttpCode,
   Post,
   Query,
+  RawBodyRequest,
   Req,
   Res,
   UnauthorizedException,
@@ -16,6 +17,7 @@ import { Request, Response } from 'express';
 import { HandleOAuthCallbackUseCase } from '../../../application/auth/handle-oauth-callback.use-case';
 import { HandleSessionRevokedUseCase } from '../../../application/auth/handle-session-revoked.use-case';
 import { OAuthClient } from '../../../domain/auth/oauth-client';
+import { WebhookAuthenticator } from '../../../infrastructure/auth/webhook-authenticator';
 import { clearAuthCookies, setAuthCookies } from '../auth-cookies';
 import {
   CurrentUser,
@@ -35,6 +37,7 @@ export class AuthController {
     private readonly handleOAuthCallback: HandleOAuthCallbackUseCase,
     private readonly handleSessionRevoked: HandleSessionRevokedUseCase,
     private readonly oauthClient: OAuthClient,
+    private readonly webhookAuthenticator: WebhookAuthenticator,
     private readonly config: ConfigService,
   ) {}
 
@@ -93,14 +96,26 @@ export class AuthController {
     clearAuthCookies(res);
   }
 
+  /**
+   * Logout webhook from home-auth. Authenticated by its signature (headers X-Auth-Webhook-*, over
+   * the raw body) or, during the transition, by the legacy `?secret=` (see WebhookAuthenticator).
+   */
   @Public()
   @HttpCode(204)
   @Post('disconnect')
   async disconnect(
-    @Query('secret') secret: string,
+    @Req() req: RawBodyRequest<Request>,
+    @Query('secret') secret: unknown,
     @Body() body: DisconnectDto,
   ): Promise<void> {
-    if (secret !== this.config.getOrThrow<string>('AUTH_WEBHOOK_SECRET')) {
+    const authentic = await this.webhookAuthenticator.authenticate({
+      rawBody: req.rawBody,
+      id: req.get('x-auth-webhook-id'),
+      timestamp: req.get('x-auth-webhook-timestamp'),
+      signature: req.get('x-auth-webhook-signature'),
+      legacySecret: secret,
+    });
+    if (!authentic) {
       throw new UnauthorizedException();
     }
     await this.handleSessionRevoked.execute(body.userId);

@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller';
 import { HandleOAuthCallbackUseCase } from '../../../application/auth/handle-oauth-callback.use-case';
 import { HandleSessionRevokedUseCase } from '../../../application/auth/handle-session-revoked.use-case';
 import { OAuthClient, TokenPair } from '../../../domain/auth/oauth-client';
+import { WebhookAuthenticator } from '../../../infrastructure/auth/webhook-authenticator';
 import { SameOriginGuard } from '../guards/same-origin.guard';
 
 const mockTokens: TokenPair = {
@@ -18,6 +19,7 @@ describe('AuthController', () => {
   let controller: AuthController;
   let oauthClient: Mocked<OAuthClient>;
   let handleSessionRevoked: Mocked<HandleSessionRevokedUseCase>;
+  let webhookAuthenticator: Mocked<WebhookAuthenticator>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -43,6 +45,10 @@ describe('AuthController', () => {
           useValue: { execute: vi.fn().mockResolvedValue(undefined) },
         },
         {
+          provide: WebhookAuthenticator,
+          useValue: { authenticate: vi.fn().mockResolvedValue(true) },
+        },
+        {
           provide: ConfigService,
           useValue: {
             getOrThrow: vi.fn((key: string) => {
@@ -65,6 +71,7 @@ describe('AuthController', () => {
     controller = module.get(AuthController);
     oauthClient = module.get(OAuthClient);
     handleSessionRevoked = module.get(HandleSessionRevokedUseCase);
+    webhookAuthenticator = module.get(WebhookAuthenticator);
   });
 
   describe('login', () => {
@@ -124,16 +131,50 @@ describe('AuthController', () => {
   });
 
   describe('disconnect', () => {
-    it('throws 401 with wrong secret', async () => {
+    const rawBody = Buffer.from('{"userId":"user-1"}');
+    function webhookRequest(headers: Record<string, string> = {}) {
+      return {
+        rawBody,
+        get: (name: string) => headers[name.toLowerCase()],
+      } as unknown as import('@nestjs/common').RawBodyRequest<
+        import('express').Request
+      >;
+    }
+
+    it('throws 401 and revokes nothing when the webhook is not authentic', async () => {
+      webhookAuthenticator.authenticate.mockResolvedValueOnce(false);
       await expect(
-        controller.disconnect('wrong-secret', { userId: 'user-1' }),
+        controller.disconnect(webhookRequest(), 'wrong-secret', {
+          userId: 'user-1',
+        }),
       ).rejects.toThrow(UnauthorizedException);
       expect(handleSessionRevoked.execute).not.toHaveBeenCalled();
     });
 
-    it('calls handleSessionRevoked with correct secret', async () => {
-      await controller.disconnect('webhook-secret', { userId: 'user-1' });
+    it('revokes the user when the webhook is authentic', async () => {
+      await controller.disconnect(webhookRequest(), 'webhook-secret', {
+        userId: 'user-1',
+      });
       expect(handleSessionRevoked.execute).toHaveBeenCalledWith('user-1');
+    });
+
+    it('hands the raw body, the three signature headers and the query secret to the authenticator', async () => {
+      await controller.disconnect(
+        webhookRequest({
+          'x-auth-webhook-id': 'the-id',
+          'x-auth-webhook-timestamp': '1700000000',
+          'x-auth-webhook-signature': 'v1=abc',
+        }),
+        'legacy',
+        { userId: 'user-1' },
+      );
+      expect(webhookAuthenticator.authenticate).toHaveBeenCalledWith({
+        rawBody,
+        id: 'the-id',
+        timestamp: '1700000000',
+        signature: 'v1=abc',
+        legacySecret: 'legacy',
+      });
     });
   });
 });

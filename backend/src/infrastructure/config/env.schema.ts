@@ -19,6 +19,12 @@ export function createEnvSchema(env: NodeJS.ProcessEnv): Joi.ObjectSchema {
     AUTH_CLIENT_ID: Joi.string().required(),
     AUTH_CLIENT_SECRET: Joi.string().required(),
     AUTH_WEBHOOK_SECRET: Joi.string().required(),
+    // Logout webhook signature key (home-auth contract PC7): 32 random bytes as 64 hex characters.
+    // Absent or blank: only the legacy `?secret=` authenticates the webhook.
+    AUTH_WEBHOOK_SIGNING_SECRET: Joi.string()
+      .pattern(/^[0-9a-f]{64}$/)
+      .allow('')
+      .optional(),
     OPENAI_API_KEY: Joi.string().required(),
     LLM_PROVIDER: Joi.string().default('openai'),
     // Keys the HMAC that pseudonymizes personal data in logs: mandatory in production.
