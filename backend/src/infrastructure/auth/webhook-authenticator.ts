@@ -11,6 +11,7 @@ import { FeatureFlags } from '../../domain/shared/feature-flags';
 const REQUIRE_SIGNATURE_FLAG = 'auth-webhook-require-signature';
 const MAX_CLOCK_SKEW_SECONDS = 120;
 const REPLAY_WINDOW_MS = 10 * 60_000;
+const MAX_REMEMBERED_IDS = 10_000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const UNIX_SECONDS = /^[0-9]{1,15}$/;
 
@@ -48,7 +49,7 @@ export const WEBHOOK_NOW = Symbol('WEBHOOK_NOW');
  *
  * As soon as a signature header is present (id, timestamp or signature non-empty) and the id was
  * already accepted in the last 10 minutes (replay), the request is refused EVEN with a valid
- * `?secret=`: that check runs first, before format, signing-secret and raw-body checks. Any other
+ * `?secret=`: that check runs first, before the signing-secret, raw-body, format and window checks. Any other
  * signature failure (format, window, hmac) or impossibility to check (no signing secret, raw body
  * unavailable) falls back to the legacy secret while the flag is off.
  *
@@ -158,6 +159,13 @@ export class WebhookAuthenticator {
     if (id && this.wasSeen(id, now)) {
       return 'replay';
     }
+    const secret = this.config.get<string>('AUTH_WEBHOOK_SIGNING_SECRET');
+    if (!secret) {
+      return 'missing-signing-secret';
+    }
+    if (!rawBody) {
+      return 'raw-body-unavailable';
+    }
     if (
       !id ||
       !timestamp ||
@@ -177,18 +185,23 @@ export class WebhookAuthenticator {
     ) {
       return 'window';
     }
-    const secret = this.config.get<string>('AUTH_WEBHOOK_SIGNING_SECRET');
-    if (!secret) {
-      return 'missing-signing-secret';
-    }
-    if (!rawBody) {
-      return 'raw-body-unavailable';
-    }
     if (!matchesWebhookSignature(secret, id, timestamp, rawBody, received)) {
       return 'hmac';
     }
-    this.seenIds.set(id, now + REPLAY_WINDOW_MS);
+    this.remember(id, now);
     return undefined;
+  }
+
+  /** Records an authentic id; beyond the cap the oldest entries are evicted (memory stays bounded). */
+  private remember(id: string, now: number): void {
+    this.seenIds.set(id, now + REPLAY_WINDOW_MS);
+    while (this.seenIds.size > MAX_REMEMBERED_IDS) {
+      const oldest = this.seenIds.keys().next();
+      if (oldest.done) {
+        break;
+      }
+      this.seenIds.delete(oldest.value);
+    }
   }
 
   /** True when the id was accepted within the replay window (purges expired ids). */

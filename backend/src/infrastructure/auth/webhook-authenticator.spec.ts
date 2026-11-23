@@ -479,6 +479,66 @@ describe('WebhookAuthenticator', () => {
     });
   });
 
+  describe('order of the checks: signing secret, raw body, format, window, hmac', () => {
+    const LEGACY = { legacySecret: LEGACY_SECRET };
+    const MALFORMED = { signature: 'v1=zz' };
+    const STALE = { timestamp: NOW_S - 500 };
+
+    async function reasonOf(
+      message: Record<string, unknown>,
+      options: { secret?: string | undefined } = {},
+    ): Promise<string> {
+      signingSecret = 'secret' in options ? options.secret : SIGNING_SECRET;
+      warnings.length = 0;
+      await expect(
+        authenticator().authenticate({ ...message, ...LEGACY }),
+      ).resolves.toBe(true);
+      return warnings[0] ?? '';
+    }
+
+    it('names missing-signing-secret before anything about the request', async () => {
+      const bad = { ...signed(SIGNING_SECRET, STALE), ...MALFORMED };
+      expect(await reasonOf(bad, { secret: undefined })).toContain(
+        '(missing-signing-secret)',
+      );
+    });
+
+    it('names raw-body-unavailable before format and window', async () => {
+      const bad = {
+        ...signed(SIGNING_SECRET, STALE),
+        ...MALFORMED,
+        rawBody: undefined,
+      };
+      expect(await reasonOf(bad)).toContain('(raw-body-unavailable)');
+    });
+
+    it('names format before window (stale and malformed)', async () => {
+      const bad = { ...signed(SIGNING_SECRET, STALE), ...MALFORMED };
+      expect(await reasonOf(bad)).toContain('(format)');
+    });
+
+    it('names window for a stale but well-formed signature', async () => {
+      expect(await reasonOf(signed(SIGNING_SECRET, STALE))).toContain(
+        '(window)',
+      );
+    });
+  });
+
+  describe('seen ids are capped at 10 000 entries (oldest evicted)', () => {
+    it('forgets the oldest id once the cap is exceeded, keeps the newest', async () => {
+      const target = authenticator();
+      const first = signed();
+      await expect(target.authenticate(first)).resolves.toBe(true);
+      let last = first;
+      for (let i = 0; i < 10_000; i += 1) {
+        last = signed();
+        await target.authenticate(last);
+      }
+      await expect(target.authenticate(last)).resolves.toBe(false);
+      await expect(target.authenticate(first)).resolves.toBe(true);
+    });
+  });
+
   describe('replay is refused even with a valid ?secret= (flag off)', () => {
     it('refuses a replayed signed request carrying the legacy secret', async () => {
       const target = authenticator();
