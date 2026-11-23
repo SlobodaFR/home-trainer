@@ -126,3 +126,11 @@ Oxlint (`.oxlintrc.json`) and Oxfmt (`.oxfmtrc.json`) at the root; no ESLint or 
 - **pre-commit**: lint-staged runs Oxfmt on staged files.
 - **pre-push**: full `npm test` (backend + frontend Vitest). Must pass before push.
 - Commits require conventional format: `feat(NNN): description`, `fix: ...`, `chore: ...`. No `Co-Authored-By`.
+
+### Ops telemetry (convention harnais `ops-telemetry`)
+
+The backend sends two anonymous operational events to PostHog through the port `Telemetry.capture({ name, properties })` (`backend/src/domain/shared/telemetry.ts`), provided globally by `TelemetryModule` (adapter `PostHogTelemetry`, `posthog-node`):
+
+- `runtime_health` every 60 s (`RuntimeHealthMonitor`: `lag_p50_ms`, `lag_p99_ms`, `lag_max_ms`, `elu`, `rss_mb`, `heap_used_mb`; the log line and `/healthz` keep the same sample) and `http_request` per request handled by a Nest route (`TelemetryInterceptor`: `method`, `route` template, `status`, `duration_ms`). Every event also carries `service: 'home-trainer'`.
+- Anonymous by construction: random UUID `distinctId`, `$process_person_profile: false`, `$ip: null`, no user id, never the raw URL, query, params, headers or body. `/healthz` and `/api/health` (probed) are not reported; the SPA and static assets are served outside Nest routes and never intercepted.
+- **Configuration**: `POSTHOG_API_KEY` (and optionally `POSTHOG_HOST`, default `https://eu.i.posthog.com`). Absent or blank: NOOP adapter (no client, no network, startup never depends on PostHog). The queue is flushed on shutdown, bounded to 5 s (`enableShutdownHooks`).
