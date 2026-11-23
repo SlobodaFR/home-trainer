@@ -70,6 +70,16 @@ interfaces/http/
 
 **Database**: SQLite via `better-sqlite3`, `synchronize: true` (schema auto-migrated). DB file path from `DATABASE_PATH` env var.
 
+### Feature flags (home-features)
+
+The backend reads boolean flags from [home-features](https://features.sloboda.fr) over OFREP (`@openfeature/server-sdk` + `@openfeature/ofrep-provider`) behind the port `FeatureFlags.isEnabled(key, codeDefault)` (`backend/src/domain/shared/feature-flags.ts`), provided globally by `FeatureFlagsModule`. The adapter (`backend/src/infrastructure/feature-flags/`) contains nothing specific to this service: it is the reference copy from home-auth (PR #86), copied verbatim by every home-* service.
+
+- **Configuration**: `FEATURES_OFREP_URL` (`https://features.sloboda.fr/api`, https required in production) and `FEATURES_API_KEY` (server key bound to the app and environment, `hf_` + 64 hex). Absent: every flag equals its code default (one warning). Invalid: same, with an error logged. Startup never waits for home-features (and the Joi schema does not reject these values).
+- **Evaluation**: 500 ms timeout per request, result memoized 30 s per key. Value set for the environment: that value. No value (`DISABLED`) or unknown flag (`FLAG_NOT_FOUND`): code default. Any other error (network, timeout, 401, 429, 5xx): last known value, else code default, memoized 30 s too, WARN at most every 5 min per flag and error code. The last known value lives in the process only (lost on restart).
+- **Emergency pin**: `FEATURES_PIN_<KEY_IN_UPPER_SNAKE>=true|false` (e.g. `FEATURES_PIN_AUTH_VERIFY_TOKEN_CLAIMS=false`) wins over everything, even without home-features; any other value is ignored (error logged); needs a container restart. Any character outside `[A-Za-z0-9]` becomes `_`.
+- `OFREP_ENDPOINT`, `OFREP_HEADERS` and `OFREP_TIMEOUT_MS`, which the provider would otherwise read, are ignored and removed from the environment at startup (warn).
+- `main.ts` calls `enableShutdownHooks()` so the OpenFeature client is closed on SIGTERM.
+
 ### Frontend — layer structure
 
 ```
