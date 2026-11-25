@@ -1,3 +1,4 @@
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import {
   Body,
   Controller,
@@ -15,10 +16,19 @@ import { ConfigService } from '@nestjs/config';
 import { IsString } from 'class-validator';
 import { Request, Response } from 'express';
 import { HandleOAuthCallbackUseCase } from '../../../application/auth/handle-oauth-callback.use-case';
+import { InitiateServiceLogoutUseCase } from '../../../application/auth/initiate-service-logout.use-case';
 import { HandleSessionRevokedUseCase } from '../../../application/auth/handle-session-revoked.use-case';
 import { OAuthClient } from '../../../domain/auth/oauth-client';
 import { WebhookAuthenticator } from '../../../infrastructure/auth/webhook-authenticator';
-import { clearAuthCookies, setAuthCookies } from '../auth-cookies';
+import {
+  ACCESS_TOKEN_COOKIE_NAME,
+  LOGOUT_STATE_COOKIE_NAME,
+  REFRESH_TOKEN_COOKIE_NAME,
+  clearAuthCookies,
+  clearLogoutStateCookie,
+  setAuthCookies,
+  setLogoutStateCookie,
+} from '../auth-cookies';
 import {
   CurrentUser,
   CurrentUserPayload,
@@ -39,11 +49,16 @@ export class AuthController {
     private readonly oauthClient: OAuthClient,
     private readonly webhookAuthenticator: WebhookAuthenticator,
     private readonly config: ConfigService,
+    private readonly initiateServiceLogout: InitiateServiceLogoutUseCase,
   ) {}
 
   private callbackUrl(): string {
+    return this.frontendUrl('/api/auth/callback');
+  }
+
+  private frontendUrl(path: string): string {
     return new URL(
-      '/api/auth/callback',
+      path,
       this.config.getOrThrow<string>('FRONTEND_URL'),
     ).toString();
   }
@@ -89,11 +104,63 @@ export class AuthController {
     }
   }
 
-  @HttpCode(204)
+  /**
+   * Local logout. Behind `auth-rp-initiated-logout`, also returns the home-auth logout URL (PC10)
+   * for the SPA to reach by a top-level navigation; `redirect_to` is null otherwise (local-only).
+   * Public (an expired session must still be able to log out) but POST + SameOriginGuard: no
+   * logout-CSRF. Local cookies are always dropped, the refresh token included (home-auth revokes
+   * nothing).
+   */
+  @Public()
+  @HttpCode(200)
   @Post('logout')
   @UseGuards(SameOriginGuard)
-  logout(@Res({ passthrough: true }) res: Response): void {
+  async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ redirect_to: string | null }> {
+    // The body may carry a bearer token hint: never cached.
+    res.setHeader('Cache-Control', 'no-store');
+    const state = randomBytes(32).toString('base64url');
+    let redirectTo: string | null = null;
+    try {
+      redirectTo = await this.initiateServiceLogout.execute({
+        accessToken: cookieValue(req, ACCESS_TOKEN_COOKIE_NAME),
+        refreshToken: cookieValue(req, REFRESH_TOKEN_COOKIE_NAME),
+        state,
+        postLogoutRedirectUri: this.frontendUrl('/api/auth/logged-out'),
+      });
+    } catch {
+      // Falls back to the local-only logout.
+    }
     clearAuthCookies(res);
+    if (redirectTo) {
+      setLogoutStateCookie(res, state, this.config);
+    }
+    return { redirect_to: redirectTo };
+  }
+
+  /**
+   * Return from home-auth after a service-initiated logout. No effect besides dropping the state
+   * cookie: the state must match the one stored by POST /auth/logout (missing, repeated or
+   * different: neutral /login, no banner). Never starts /authorize.
+   */
+  @Public()
+  @Get('logged-out')
+  loggedOut(
+    @Query('state') state: unknown,
+    @Req() req: Request,
+    @Res() res: Response,
+  ): void {
+    res.setHeader('Cache-Control', 'no-store');
+    const expected = cookieValue(req, LOGOUT_STATE_COOKIE_NAME);
+    const matches =
+      typeof state === 'string' &&
+      state !== '' &&
+      expected !== undefined &&
+      timingSafeEqual(sha256(state), sha256(expected));
+    clearLogoutStateCookie(res, this.config);
+    res.redirect(this.frontendUrl(matches ? '/login?logged_out=1' : '/login'));
   }
 
   /**
@@ -120,4 +187,14 @@ export class AuthController {
     }
     await this.handleSessionRevoked.execute(body.userId);
   }
+}
+
+function cookieValue(req: Request, name: string): string | undefined {
+  const cookies = req.cookies as Record<string, unknown> | undefined;
+  const value = cookies?.[name];
+  return typeof value === 'string' && value !== '' ? value : undefined;
+}
+
+function sha256(value: string): Buffer {
+  return createHash('sha256').update(value).digest();
 }
