@@ -21,7 +21,7 @@ npm run typecheck            # backend (specs included) + frontend
 
 # Seed exercises from Wger (runs the compiled seed, so build the backend first). The container entrypoint runs it
 # at every boot but it is NOT on the hard boot path: skipped if the DB is populated, bounded timeouts (10 s/request,
-# 45 s total), all-or-nothing transaction, and on failure the entrypoint warns and starts the app (retried next boot).
+# 45 s total, 429/5xx retried with Retry-After backoff, whole seed capped by `timeout 90` in the entrypoint), completeness threshold (< 500 Wger rows = re-seed by upsert on wger_id, never delete), all-or-nothing transaction, and on failure the entrypoint warns and starts the app (retried next boot).
 npm run build:backend && npm run seed:wger --workspace=backend
 ```
 

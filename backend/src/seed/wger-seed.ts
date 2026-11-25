@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, IsNull, Not, Repository } from 'typeorm';
 import { ExerciseOrmEntity } from '../infrastructure/persistence/entities/exercise.orm-entity';
 
 interface WgerListResponse<T> {
@@ -77,10 +77,14 @@ function normalizeEquipment(name: string): string {
 export interface SeedOptions {
   /** Délai max par appel HTTP (ms). */
   requestTimeoutMs: number;
-  /** Délai max pour toute la récupération Wger (ms) : le seed est sur le chemin de démarrage. */
+  /** Délai max pour toute la récupération Wger (ms), attentes de nouvelle tentative comprises. */
   totalTimeoutMs: number;
   /** Pause entre deux pages (ms). */
   pageDelayMs: number;
+  /** En dessous de ce nombre d'exercices Wger, la base est jugée incomplète et re-semée. */
+  minCompleteCount: number;
+  /** Délai de base du backoff exponentiel entre deux tentatives (ms). */
+  retryBaseDelayMs: number;
   fetchImpl: (url: string, init?: RequestInit) => Promise<Response>;
 }
 
@@ -88,6 +92,8 @@ export const DEFAULT_SEED_OPTIONS: SeedOptions = {
   requestTimeoutMs: 10_000,
   totalTimeoutMs: 45_000,
   pageDelayMs: 500,
+  minCompleteCount: 500,
+  retryBaseDelayMs: 500,
   fetchImpl: (url, init) => fetch(url, init),
 };
 
@@ -97,18 +103,47 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+const MAX_ATTEMPTS = 3;
+
+function isRetryable(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
+/** Retry-After : secondes entières ou date HTTP ; null si absent ou illisible. */
+function retryAfterMs(res: Response): number | null {
+  const raw = res.headers.get('retry-after');
+  if (raw === null) return null;
+  const seconds = Number(raw);
+  if (raw.trim() !== '' && Number.isFinite(seconds) && seconds >= 0) {
+    return seconds * 1000;
+  }
+  const date = Date.parse(raw);
+  return Number.isNaN(date) ? null : Math.max(0, date - Date.now());
+}
+
 async function fetchJson<T>(
   url: string,
   opts: SeedOptions,
   deadline: number,
 ): Promise<T> {
-  const remaining = deadline - Date.now();
-  if (remaining <= 0) throw new Error(`Wger total timeout exceeded: ${url}`);
-  const res = await opts.fetchImpl(url, {
-    signal: AbortSignal.timeout(Math.min(opts.requestTimeoutMs, remaining)),
-  });
-  if (!res.ok) throw new Error(`Fetch failed ${String(res.status)}: ${url}`);
-  return res.json() as Promise<T>;
+  for (let attempt = 1; ; attempt += 1) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw new Error(`Wger total timeout exceeded: ${url}`);
+    const res = await opts.fetchImpl(url, {
+      signal: AbortSignal.timeout(Math.min(opts.requestTimeoutMs, remaining)),
+    });
+    if (res.ok) return res.json() as Promise<T>;
+    const failure = new Error(`Fetch failed ${String(res.status)}: ${url}`);
+    if (!isRetryable(res.status) || attempt >= MAX_ATTEMPTS) throw failure;
+    const wait =
+      retryAfterMs(res) ?? opts.retryBaseDelayMs * 2 ** (attempt - 1);
+    // Attendre plus que le délai global restant ne servirait à rien : abandon immédiat.
+    if (wait >= deadline - Date.now()) throw failure;
+    console.warn(
+      `[wger-seed] ${String(res.status)} — retry ${String(attempt)}/${String(MAX_ATTEMPTS - 1)} in ${String(wait)} ms`,
+    );
+    await sleep(wait);
+  }
 }
 
 async function getFrenchLanguageId(
@@ -175,9 +210,14 @@ function toEntities(
     .filter((e): e is ExerciseOrmEntity => e !== null);
 }
 
-async function isFullySeeded(repo: Repository<ExerciseOrmEntity>) {
-  const count = await repo.count();
-  if (count === 0) return { count, full: false };
+async function isFullySeeded(
+  repo: Repository<ExerciseOrmEntity>,
+  minCompleteCount: number,
+) {
+  // Seules les lignes Wger comptent : un exercice créé par l'utilisateur ne rend pas le catalogue complet.
+  const count = await repo.count({ where: { wgerId: Not(IsNull()) } });
+  // Seuil de complétude : une base laissée à moitié remplie par l'ancien seed (page par page) est re-semée.
+  if (count < minCompleteCount) return { count, full: false };
   const has = (where: string) =>
     repo
       .createQueryBuilder('e')
@@ -206,7 +246,7 @@ export async function runSeed(
   const opts = { ...DEFAULT_SEED_OPTIONS, ...options };
   const repo = dataSource.getRepository(ExerciseOrmEntity);
 
-  const { count, full } = await isFullySeeded(repo);
+  const { count, full } = await isFullySeeded(repo, opts.minCompleteCount);
   if (full) {
     console.log(
       `[wger-seed] ${String(count)} exercises fully seeded — skipping.`,
