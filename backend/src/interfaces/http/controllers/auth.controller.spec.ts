@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import type { Mocked } from 'vitest';
 import { AuthController } from './auth.controller';
 import { HandleOAuthCallbackUseCase } from '../../../application/auth/handle-oauth-callback.use-case';
+import { InitiateServiceLogoutUseCase } from '../../../application/auth/initiate-service-logout.use-case';
 import { HandleSessionRevokedUseCase } from '../../../application/auth/handle-session-revoked.use-case';
 import { OAuthClient, TokenPair } from '../../../domain/auth/oauth-client';
 import { WebhookAuthenticator } from '../../../infrastructure/auth/webhook-authenticator';
@@ -44,6 +45,7 @@ describe('AuthController', () => {
           provide: HandleSessionRevokedUseCase,
           useValue: { execute: vi.fn().mockResolvedValue(undefined) },
         },
+        { provide: InitiateServiceLogoutUseCase, useValue: {} },
         {
           provide: WebhookAuthenticator,
           useValue: { authenticate: vi.fn().mockResolvedValue(true) },

@@ -8,7 +8,7 @@ const LINKS = [
 ];
 
 export function NavBar() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   return (
     <nav
@@ -47,6 +47,15 @@ export function NavBar() {
             </div>
           )}
           <span className="text-sm text-ink">{user.name}</span>
+          <button
+            type="button"
+            onClick={() => {
+              void logout().catch(() => undefined);
+            }}
+            className="text-sm text-mute underline"
+          >
+            Se déconnecter
+          </button>
         </div>
       )}
     </nav>

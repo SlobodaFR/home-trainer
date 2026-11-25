@@ -5,6 +5,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { HandleOAuthCallbackUseCase } from '../../../application/auth/handle-oauth-callback.use-case';
+import { InitiateServiceLogoutUseCase } from '../../../application/auth/initiate-service-logout.use-case';
 import { HandleSessionRevokedUseCase } from '../../../application/auth/handle-session-revoked.use-case';
 import { OAuthClient } from '../../../domain/auth/oauth-client';
 import { computeWebhookSignature } from '../../../domain/auth/webhook-signature';
@@ -49,6 +50,7 @@ describe('POST /auth/disconnect (HTTP, rawBody as in main.ts)', () => {
         { provide: HandleSessionRevokedUseCase, useValue: { execute } },
         { provide: HandleOAuthCallbackUseCase, useValue: {} },
         { provide: OAuthClient, useValue: {} },
+        { provide: InitiateServiceLogoutUseCase, useValue: {} },
       ],
     }).compile();
     // Same options as main.ts: `rawBody: true` keeps the exact bytes next to the parsed body.
