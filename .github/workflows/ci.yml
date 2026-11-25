@@ -51,10 +51,26 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image (no push)
+      - name: Lockfile guard (runtime packages must live in /app/node_modules)
+        run: sh .github/scripts/lockfile-runtime-check.sh --service home-trainer --dockerfile Dockerfile --workspace backend
+
+      - name: Build Docker image (loaded, no push)
         uses: docker/build-push-action@v6
         with:
+          platforms: linux/amd64
           context: .
+          load: true
           push: false
+          tags: home-trainer:ci-${{ github.run_id }}-${{ github.run_attempt }}
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
+
+      # L'entrypoint amorce les exercices depuis l'API publique wger.de (sans identifiant) avant de démarrer l'app.
+      - name: Boot check (the container must start and stay healthy)
+        run: |
+          sh .github/scripts/docker-boot-check.sh --service home-trainer --image home-trainer:ci-${{ github.run_id }}-${{ github.run_attempt }} --rm-image \
+            --volume /app/backend/data --path /healthz --expect /healthz=200 \
+            --expect /api/profile=401 --expect /api/unknown=404 --forbid-ts \
+            --env AUTH_SERVICE_URL=https://auth.example.test --env AUTH_CLIENT_ID=home-trainer \
+            --env FRONTEND_URL=https://trainer.example.test --env OPENAI_API_KEY=sk-ci-dummy \
+            --secret AUTH_CLIENT_SECRET --secret AUTH_WEBHOOK_SECRET --secret PSEUDONYM_SECRET
