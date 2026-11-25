@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { ExerciseOrmEntity } from '../infrastructure/persistence/entities/exercise.orm-entity';
 
 interface WgerListResponse<T> {
@@ -74,21 +74,190 @@ function normalizeEquipment(name: string): string {
   return EQUIPMENT_MAP[name.toLowerCase()] ?? name;
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Fetch failed ${String(res.status)}: ${url}`);
-  return res.json() as Promise<T>;
+export interface SeedOptions {
+  /** Délai max par appel HTTP (ms). */
+  requestTimeoutMs: number;
+  /** Délai max pour toute la récupération Wger (ms) : le seed est sur le chemin de démarrage. */
+  totalTimeoutMs: number;
+  /** Pause entre deux pages (ms). */
+  pageDelayMs: number;
+  fetchImpl: (url: string, init?: RequestInit) => Promise<Response>;
 }
+
+export const DEFAULT_SEED_OPTIONS: SeedOptions = {
+  requestTimeoutMs: 10_000,
+  totalTimeoutMs: 45_000,
+  pageDelayMs: 500,
+  fetchImpl: (url, init) => fetch(url, init),
+};
+
+export type SeedOutcome = 'skipped' | 'seeded';
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function getFrenchLanguageId(): Promise<number | null> {
+async function fetchJson<T>(
+  url: string,
+  opts: SeedOptions,
+  deadline: number,
+): Promise<T> {
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) throw new Error(`Wger total timeout exceeded: ${url}`);
+  const res = await opts.fetchImpl(url, {
+    signal: AbortSignal.timeout(Math.min(opts.requestTimeoutMs, remaining)),
+  });
+  if (!res.ok) throw new Error(`Fetch failed ${String(res.status)}: ${url}`);
+  return res.json() as Promise<T>;
+}
+
+async function getFrenchLanguageId(
+  opts: SeedOptions,
+  deadline: number,
+): Promise<number | null> {
   const data = await fetchJson<WgerListResponse<WgerLanguage>>(
     `${WGER_BASE}/language/?format=json&limit=100`,
+    opts,
+    deadline,
   );
   return data.results.find((l) => l.short_name === 'fr')?.id ?? null;
+}
+
+function toEntities(
+  results: WgerExerciseInfo[],
+  frenchLanguageId: number | null,
+): ExerciseOrmEntity[] {
+  return results
+    .map((ex) => {
+      const enTranslation = ex.translations.find(
+        (t) => t.language === ENGLISH_LANGUAGE,
+      );
+      if (!enTranslation?.name.trim()) return null;
+
+      const frTranslation =
+        frenchLanguageId !== null
+          ? ex.translations.find((t) => t.language === frenchLanguageId)
+          : undefined;
+
+      const entity = new ExerciseOrmEntity();
+      entity.wgerId = ex.id;
+      entity.name = enTranslation.name.trim();
+      entity.description = enTranslation.description;
+      entity.nameFr = frTranslation?.name.trim() ?? null;
+      entity.descriptionFr = frTranslation?.description ?? null;
+      entity.muscleGroups = ex.muscles
+        .map((m) => m.name_en)
+        .filter((n) => n.length > 0);
+      entity.equipment = [
+        ...new Set(
+          ex.equipment
+            .map((e) => normalizeEquipment(e.name))
+            .filter((n) => n.length > 0),
+        ),
+      ];
+      entity.imageUrl = ex.images.find((img) => img.is_main)?.image ?? null;
+      entity.muscleImages = [
+        ...ex.muscles.map((m) => ({
+          url: m.image_url_main,
+          isFront: m.is_front,
+          isSecondary: false,
+        })),
+        ...ex.muscles_secondary.map((m) => ({
+          url: m.image_url_main,
+          isFront: m.is_front,
+          isSecondary: true,
+        })),
+      ];
+      entity.youtubeUrl = null;
+      entity.everkineticSlug = null;
+      return entity;
+    })
+    .filter((e): e is ExerciseOrmEntity => e !== null);
+}
+
+async function isFullySeeded(repo: Repository<ExerciseOrmEntity>) {
+  const count = await repo.count();
+  if (count === 0) return { count, full: false };
+  const has = (where: string) =>
+    repo
+      .createQueryBuilder('e')
+      .where(where)
+      .getCount()
+      .then((n) => n > 0);
+  const full =
+    (await has('e.image_url IS NOT NULL')) &&
+    (await has('e.name_fr IS NOT NULL')) &&
+    // Bodyweight correctement étiqueté ('Bodyweight', pas [] vide)
+    (await has(`e.equipment LIKE '%Bodyweight%'`));
+  return { count, full };
+}
+
+/**
+ * Remplit le catalogue d'exercices depuis Wger.
+ *
+ * Tout-ou-rien : toutes les pages sont d'abord récupérées en mémoire (bornées par des délais), puis
+ * écrites dans UNE transaction. Un échec réseau en cours de route n'écrit donc rien : la base n'est
+ * jamais « à moitié remplie » puis jugée peuplée, et le prochain démarrage réessaie.
+ */
+export async function runSeed(
+  dataSource: DataSource,
+  options: Partial<SeedOptions> = {},
+): Promise<SeedOutcome> {
+  const opts = { ...DEFAULT_SEED_OPTIONS, ...options };
+  const repo = dataSource.getRepository(ExerciseOrmEntity);
+
+  const { count, full } = await isFullySeeded(repo);
+  if (full) {
+    console.log(
+      `[wger-seed] ${String(count)} exercises fully seeded — skipping.`,
+    );
+    return 'skipped';
+  }
+  if (count > 0) {
+    console.log(`[wger-seed] ${String(count)} exercises found — updating…`);
+  }
+
+  const deadline = Date.now() + opts.totalTimeoutMs;
+  console.log('[wger-seed] Fetching French language ID from Wger…');
+  const frenchLanguageId = await getFrenchLanguageId(opts, deadline);
+  console.log(
+    `[wger-seed] French language ID: ${frenchLanguageId !== null ? String(frenchLanguageId) : 'not found'}`,
+  );
+
+  const entities: ExerciseOrmEntity[] = [];
+  let offset = 0;
+  let page = 1;
+  let hasMore = true;
+  while (hasMore) {
+    const url = `${WGER_BASE}/exerciseinfo/?format=json&limit=100&offset=${String(offset)}`;
+    const data = await fetchJson<WgerListResponse<WgerExerciseInfo>>(
+      url,
+      opts,
+      deadline,
+    );
+    const batch = toEntities(data.results, frenchLanguageId);
+    entities.push(...batch);
+    console.log(
+      `[wger-seed] page ${String(page)} — fetched ${String(batch.length)} exercises`,
+    );
+    hasMore = data.next !== null;
+    offset += 100;
+    page += 1;
+    if (hasMore) await sleep(opts.pageDelayMs);
+  }
+
+  await dataSource.transaction(async (manager) => {
+    const txRepo = manager.getRepository(ExerciseOrmEntity);
+    for (let i = 0; i < entities.length; i += 100) {
+      await txRepo.upsert(entities.slice(i, i + 100), {
+        conflictPaths: ['wgerId'],
+        skipUpdateIfNoValuesChanged: true,
+      });
+    }
+  });
+
+  console.log(`[wger-seed] Done. Total upserted: ${String(entities.length)}`);
+  return 'seeded';
 }
 
 async function main(): Promise<void> {
@@ -98,123 +267,17 @@ async function main(): Promise<void> {
     entities: [ExerciseOrmEntity],
     synchronize: true,
   });
-
   await dataSource.initialize();
-  const repo = dataSource.getRepository(ExerciseOrmEntity);
-
-  const count = await repo.count();
-  if (count > 0) {
-    const withImages = await repo
-      .createQueryBuilder('e')
-      .where('e.image_url IS NOT NULL')
-      .getCount();
-    const withFr = await repo
-      .createQueryBuilder('e')
-      .where('e.name_fr IS NOT NULL')
-      .getCount();
-    // Check if bodyweight is properly tagged (as 'Bodyweight', not empty [])
-    const withBodyweight = await repo
-      .createQueryBuilder('e')
-      .where(`e.equipment LIKE '%Bodyweight%'`)
-      .getCount();
-
-    if (withImages > 0 && withFr > 0 && withBodyweight > 0) {
-      console.log(
-        `[wger-seed] ${String(count)} exercises fully seeded — skipping.`,
-      );
-      await dataSource.destroy();
-      return;
-    }
-    console.log(
-      `[wger-seed] ${String(count)} exercises found — updating (missing: ${!withFr ? 'FR' : ''}${!withBodyweight ? ' equipment-mapping' : ''})…`,
-    );
+  try {
+    await runSeed(dataSource);
+  } finally {
+    await dataSource.destroy();
   }
-
-  console.log('[wger-seed] Fetching French language ID from Wger…');
-  const frenchLanguageId = await getFrenchLanguageId();
-  console.log(
-    `[wger-seed] French language ID: ${frenchLanguageId !== null ? String(frenchLanguageId) : 'not found'}`,
-  );
-
-  let offset = 0;
-  let page = 1;
-  let totalUpserted = 0;
-  let hasMore = true;
-
-  while (hasMore) {
-    const url = `${WGER_BASE}/exerciseinfo/?format=json&limit=100&offset=${String(offset)}`;
-    const data = await fetchJson<WgerListResponse<WgerExerciseInfo>>(url);
-
-    const batch = data.results
-      .map((ex) => {
-        const enTranslation = ex.translations.find(
-          (t) => t.language === ENGLISH_LANGUAGE,
-        );
-        if (!enTranslation?.name.trim()) return null;
-
-        const frTranslation =
-          frenchLanguageId !== null
-            ? ex.translations.find((t) => t.language === frenchLanguageId)
-            : undefined;
-
-        const entity = new ExerciseOrmEntity();
-        entity.wgerId = ex.id;
-        entity.name = enTranslation.name.trim();
-        entity.description = enTranslation.description;
-        entity.nameFr = frTranslation?.name.trim() ?? null;
-        entity.descriptionFr = frTranslation?.description ?? null;
-        entity.muscleGroups = ex.muscles
-          .map((m) => m.name_en)
-          .filter((n) => n.length > 0);
-        entity.equipment = [
-          ...new Set(
-            ex.equipment
-              .map((e) => normalizeEquipment(e.name))
-              .filter((n) => n.length > 0),
-          ),
-        ];
-        entity.imageUrl = ex.images.find((img) => img.is_main)?.image ?? null;
-        entity.muscleImages = [
-          ...ex.muscles.map((m) => ({
-            url: m.image_url_main,
-            isFront: m.is_front,
-            isSecondary: false,
-          })),
-          ...ex.muscles_secondary.map((m) => ({
-            url: m.image_url_main,
-            isFront: m.is_front,
-            isSecondary: true,
-          })),
-        ];
-        entity.youtubeUrl = null;
-        entity.everkineticSlug = null;
-        return entity;
-      })
-      .filter((e): e is ExerciseOrmEntity => e !== null);
-
-    if (batch.length > 0) {
-      await repo.upsert(batch, {
-        conflictPaths: ['wgerId'],
-        skipUpdateIfNoValuesChanged: true,
-      });
-      totalUpserted += batch.length;
-    }
-
-    console.log(
-      `[wger-seed] page ${String(page)} — upserted ${String(batch.length)} exercises`,
-    );
-
-    hasMore = data.next !== null;
-    offset += 100;
-    page += 1;
-    if (hasMore) await sleep(500);
-  }
-
-  console.log(`[wger-seed] Done. Total upserted: ${String(totalUpserted)}`);
-  await dataSource.destroy();
 }
 
-main().catch((err: unknown) => {
-  console.error('[wger-seed] Error:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err: unknown) => {
+    console.error('[wger-seed] Error:', err);
+    process.exit(1);
+  });
+}

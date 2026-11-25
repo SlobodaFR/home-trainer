@@ -19,7 +19,9 @@ npm run format               # Oxfmt, whole repo
 npm run format:check         # what CI checks
 npm run typecheck            # backend (specs included) + frontend
 
-# Seed exercises from Wger (one-time; runs the compiled seed, so build the backend first)
+# Seed exercises from Wger (runs the compiled seed, so build the backend first). The container entrypoint runs it
+# at every boot but it is NOT on the hard boot path: skipped if the DB is populated, bounded timeouts (10 s/request,
+# 45 s total), all-or-nothing transaction, and on failure the entrypoint warns and starts the app (retried next boot).
 npm run build:backend && npm run seed:wger --workspace=backend
 ```
 
