@@ -25,6 +25,7 @@ import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-en
 import { WorkoutLogOrmEntity } from './infrastructure/persistence/entities/workout-log.orm-entity';
 import { createEnvSchema } from './infrastructure/config/env.schema';
 import { loggerParams } from './infrastructure/logging/logger.config';
+import { STATIC_EXCLUDE } from './interfaces/http/static-exclude';
 import { throttlerOptions } from './interfaces/http/throttling';
 import { PlanningModule } from './planning/planning.module';
 import { ProfileModule } from './profile/profile.module';
@@ -68,7 +69,7 @@ import { TelemetryModule } from './telemetry/telemetry.module';
       ? [
           ServeStaticModule.forRoot({
             rootPath: join(__dirname, 'public'),
-            exclude: ['/api/*path'],
+            exclude: STATIC_EXCLUDE,
           }),
         ]
       : []),
