@@ -28,6 +28,7 @@ function json(body: unknown, ok = true): Response {
   return {
     ok,
     status: ok ? 200 : 503,
+    headers: new Headers(),
     json: () => Promise.resolve(body),
   } as Response;
 }
@@ -40,7 +41,13 @@ const LANGS = {
 
 describe('runSeed', () => {
   let ds: DataSource;
-  const fast = { pageDelayMs: 0, requestTimeoutMs: 200, totalTimeoutMs: 2000 };
+  const fast = {
+    pageDelayMs: 0,
+    requestTimeoutMs: 200,
+    totalTimeoutMs: 2000,
+    minCompleteCount: 1,
+    retryBaseDelayMs: 1,
+  };
 
   beforeEach(async () => {
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
@@ -129,5 +136,92 @@ describe('runSeed', () => {
       runSeed(ds, { ...fast, totalTimeoutMs: 50, pageDelayMs: 30, fetchImpl }),
     ).rejects.toThrow(/total timeout/);
     expect(await count()).toBe(0);
+  });
+
+  const pagesOk = (u: string) =>
+    Promise.resolve(
+      u.includes('/language/')
+        ? json(LANGS)
+        : json({ count: 2, next: null, results: [exo(1, 'A'), exo(2, 'B')] }),
+    );
+
+  it('re-seeds a DB below the completeness threshold, keeping ids and user-owned rows', async () => {
+    const repo = ds.getRepository(ExerciseOrmEntity);
+    const partial = await repo.save(
+      Object.assign(new ExerciseOrmEntity(), {
+        wgerId: 1,
+        name: 'A',
+        nameFr: 'A FR',
+        imageUrl: 'x',
+        equipment: ['Bodyweight'],
+      }),
+    );
+    const custom = await repo.save(
+      Object.assign(new ExerciseOrmEntity(), { wgerId: null, name: 'Mine' }),
+    );
+    const fetchImpl = vi.fn(pagesOk);
+    expect(await runSeed(ds, { ...fast, minCompleteCount: 2, fetchImpl })).toBe(
+      'seeded',
+    );
+    expect(await count()).toBe(3);
+    expect((await repo.findOneByOrFail({ wgerId: 1 })).id).toBe(partial.id);
+    expect((await repo.findOneByOrFail({ name: 'Mine' })).id).toBe(custom.id);
+    // now complete: no more network
+    fetchImpl.mockClear();
+    expect(await runSeed(ds, { ...fast, minCompleteCount: 2, fetchImpl })).toBe(
+      'skipped',
+    );
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('retries a 429 honoring Retry-After, then succeeds', async () => {
+    let languageCalls = 0;
+    const fetchImpl = vi.fn((u: string) => {
+      if (u.includes('/language/') && languageCalls++ === 0) {
+        return Promise.resolve({
+          ok: false,
+          status: 429,
+          headers: new Headers({ 'Retry-After': '0' }),
+          json: () => Promise.resolve({}),
+        } as Response);
+      }
+      return pagesOk(u);
+    });
+    expect(await runSeed(ds, { ...fast, fetchImpl })).toBe('seeded');
+    expect(languageCalls).toBe(2);
+  });
+
+  it('retries a 503 with backoff, then gives up after the max attempts', async () => {
+    const fetchImpl = vi.fn(() => Promise.resolve(json({}, false)));
+    await expect(runSeed(ds, { ...fast, fetchImpl })).rejects.toThrow(/503/);
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not retry a 404', async () => {
+    const fetchImpl = vi.fn(() =>
+      Promise.resolve({
+        ok: false,
+        status: 404,
+        headers: new Headers(),
+        json: () => Promise.resolve({}),
+      } as Response),
+    );
+    await expect(runSeed(ds, { ...fast, fetchImpl })).rejects.toThrow(/404/);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up at once when Retry-After exceeds the remaining deadline', async () => {
+    const fetchImpl = vi.fn(() =>
+      Promise.resolve({
+        ok: false,
+        status: 429,
+        headers: new Headers({ 'Retry-After': '120' }),
+        json: () => Promise.resolve({}),
+      } as Response),
+    );
+    await expect(
+      runSeed(ds, { ...fast, totalTimeoutMs: 500, fetchImpl }),
+    ).rejects.toThrow(/429/);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });
