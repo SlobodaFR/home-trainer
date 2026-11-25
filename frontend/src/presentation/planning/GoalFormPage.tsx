@@ -65,7 +65,7 @@ export function GoalFormPage() {
       });
       showToast('Objectif enregistré, séances planifiées');
       setTimeout(() => {
-        navigate('/');
+        void navigate('/');
       }, 800);
     } catch {
       showToast('Erreur, réessayez');
@@ -79,7 +79,7 @@ export function GoalFormPage() {
         <button
           type="button"
           onClick={() => {
-            navigate(-1);
+            void navigate(-1);
           }}
           className="flex items-center gap-1 text-mute text-sm w-fit"
         >

@@ -22,11 +22,11 @@ export const ExerciseCard: FC<ExerciseCardProps> = ({
           role="button"
           tabIndex={0}
           onClick={() => {
-            navigate(`/exercises/${exercise.id}`);
+            void navigate(`/exercises/${exercise.id}`);
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ')
-              navigate(`/exercises/${exercise.id}`);
+              void navigate(`/exercises/${exercise.id}`);
           }}
         >
           <h3 className="text-base font-medium text-ink leading-snug">
