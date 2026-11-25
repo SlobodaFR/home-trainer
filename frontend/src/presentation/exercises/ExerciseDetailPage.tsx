@@ -35,7 +35,7 @@ export function ExerciseDetailPage() {
       })
       .catch(() => {
         showToast('Exercice introuvable');
-        navigate('/exercises', { replace: true });
+        void navigate('/exercises', { replace: true });
       })
       .finally(() => {
         setLoading(false);
@@ -88,7 +88,7 @@ export function ExerciseDetailPage() {
         <button
           type="button"
           onClick={() => {
-            navigate(-1);
+            void navigate(-1);
           }}
           className="flex items-center gap-1 text-mute text-sm w-fit"
         >

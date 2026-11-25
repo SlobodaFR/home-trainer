@@ -23,7 +23,7 @@ export function ProfileCard({ draft, onReset }: Props) {
     setSaving(true);
     void saveProfile(draft)
       .then(() => {
-        navigate('/');
+        void navigate('/');
       })
       .catch(() => {
         setError("Impossible d'enregistrer le profil. Réessayez.");

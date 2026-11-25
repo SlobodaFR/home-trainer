@@ -62,7 +62,7 @@ export function ExecutionPage() {
       })
       .catch((err: unknown) => {
         if (err instanceof Error && err.message.startsWith('404')) {
-          navigate('/');
+          void navigate('/');
         } else {
           showToast('Erreur de chargement');
         }
@@ -148,7 +148,7 @@ export function ExecutionPage() {
     try {
       await finishSession(id, rpe, note);
       setPending(id);
-      navigate(`/sessions/${id}`);
+      void navigate(`/sessions/${id}`);
     } catch {
       showToast('Erreur — réessayez.');
       setFinishing(false);
@@ -175,7 +175,7 @@ export function ExecutionPage() {
         <button
           type="button"
           onClick={() => {
-            navigate(-1);
+            void navigate(-1);
           }}
           className="flex items-center gap-1 text-mute text-sm w-fit"
         >

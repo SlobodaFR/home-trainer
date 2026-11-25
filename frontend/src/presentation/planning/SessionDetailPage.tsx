@@ -134,7 +134,7 @@ export function SessionDetailPage() {
     setStarting(true);
     try {
       await startSession(id);
-      navigate(`/sessions/${id}/execute`);
+      void navigate(`/sessions/${id}/execute`);
     } catch {
       showToast('Impossible de démarrer la séance');
       setStarting(false);
@@ -174,7 +174,7 @@ export function SessionDetailPage() {
           <button
             type="button"
             onClick={() => {
-              navigate(-1);
+              void navigate(-1);
             }}
             className="flex items-center gap-1 text-mute text-sm w-fit"
           >
@@ -192,7 +192,7 @@ export function SessionDetailPage() {
         <button
           type="button"
           onClick={() => {
-            navigate(-1);
+            void navigate(-1);
           }}
           className="flex items-center gap-1 text-mute text-sm w-fit"
         >
@@ -240,7 +240,7 @@ export function SessionDetailPage() {
           <button
             type="button"
             onClick={() => {
-              if (id) navigate(`/sessions/${id}/execute`);
+              if (id) void navigate(`/sessions/${id}/execute`);
             }}
             className="bg-ink text-canvas px-6 py-2 rounded-full text-sm font-medium self-start"
           >

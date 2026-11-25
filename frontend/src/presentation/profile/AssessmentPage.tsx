@@ -84,7 +84,7 @@ export function AssessmentPage() {
         <button
           type="button"
           onClick={() => {
-            navigate(-1);
+            void navigate(-1);
           }}
           className="flex items-center gap-1 text-mute text-sm w-fit"
         >
