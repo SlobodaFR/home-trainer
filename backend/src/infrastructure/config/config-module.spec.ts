@@ -23,6 +23,20 @@ function boot() {
 }
 
 describe('ConfigModule with the real environment schema', () => {
+  beforeEach(() => {
+    // Isolate from the developer's shell: every key the schema defaults or constrains.
+    vi.stubEnv('NODE_ENV', 'test');
+    for (const k of [
+      'LLM_PROVIDER',
+      'TRUST_PROXY_HOPS',
+      'AUTH_WEBHOOK_SIGNING_SECRET',
+      'PSEUDONYM_SECRET',
+      'PORT',
+    ]) {
+      vi.stubEnv(k, undefined);
+    }
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
   });
