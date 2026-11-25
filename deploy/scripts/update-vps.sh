@@ -9,13 +9,20 @@ cd "$DEPLOY_DIR/deploy"
 export IMAGE
 export IMAGE_TAG
 
+# Convention harnais image-retention : fait de la place AVANT le pull (garde keep-1 images par dépôt).
+sh "$DEPLOY_DIR/deploy/scripts/prune-service-images.sh" --phase pre \
+  --service trainer --image "$IMAGE" \
+  --tag "$IMAGE_TAG" --project trainer
 docker compose pull
 # Convention harnais deploy-wait-healthy : `docker compose up -d --wait` (repli : boucle docker inspect) ; un conteneur
 # qui n'est pas sain après 180 s fait échouer le déploiement (logs, sauvegarde et restauration affichées), sans retour arrière automatique.
 sh "$DEPLOY_DIR/deploy/scripts/compose-up-healthy.sh" --service trainer \
   --restore-args "--project trainer --volume trainer-data --mount /app/backend/data --db-path ${DATABASE_PATH:-data/trainer.sqlite}" \
   -- --remove-orphans
-docker image prune -f
+# Convention harnais image-retention : après un déploiement sain uniquement (set -e), garde 2 images par dépôt.
+sh "$DEPLOY_DIR/deploy/scripts/prune-service-images.sh" --phase post \
+  --service trainer --image "$IMAGE" \
+  --tag "$IMAGE_TAG" --project trainer
 
 if ! command -v caddy >/dev/null 2>&1; then
   sudo apt-get install -y -qq debian-keyring debian-archive-keyring apt-transport-https curl
