@@ -4,7 +4,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import cookieParser from 'cookie-parser';
 import { LoggerModule } from 'nestjs-pino';
 import { AnalysisModule } from './analysis/analysis.module';
@@ -13,17 +12,7 @@ import { ExecutionModule } from './execution/execution.module';
 import { ExerciseModule } from './exercise/exercise.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { HealthModule } from './health/health.module';
-import { ExerciseOrmEntity } from './infrastructure/persistence/entities/exercise.orm-entity';
-import { GoalOrmEntity } from './infrastructure/persistence/entities/goal.orm-entity';
-import { RevokedSessionOrmEntity } from './infrastructure/persistence/entities/revoked-session.orm-entity';
-import { SessionAnalysisOrmEntity } from './infrastructure/persistence/entities/session-analysis.orm-entity';
-import { SessionExerciseOrmEntity } from './infrastructure/persistence/entities/session-exercise.orm-entity';
-import { SessionOrmEntity } from './infrastructure/persistence/entities/session.orm-entity';
-import { UserExerciseOrmEntity } from './infrastructure/persistence/entities/user-exercise.orm-entity';
-import { UserFitnessProfileOrmEntity } from './infrastructure/persistence/entities/user-fitness-profile.orm-entity';
-import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-entity';
-import { WorkoutLogOrmEntity } from './infrastructure/persistence/entities/workout-log.orm-entity';
-import { serializedDataSourceFactory } from './infrastructure/persistence/serialized-connection';
+import { DatabaseModule } from './infrastructure/persistence/database.module';
 import { createEnvSchema } from './infrastructure/config/env.schema';
 import { loggerParams } from './infrastructure/logging/logger.config';
 import { STATIC_EXCLUDE } from './interfaces/http/static-exclude';
@@ -46,28 +35,7 @@ import { TelemetryModule } from './telemetry/telemetry.module';
           config.getOrThrow<string>('PSEUDONYM_SECRET'),
         ),
     }),
-    TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'better-sqlite3',
-        database: config.get<string>('DATABASE_PATH', 'data/trainer.sqlite'),
-        entities: [
-          UserOrmEntity,
-          RevokedSessionOrmEntity,
-          ExerciseOrmEntity,
-          UserExerciseOrmEntity,
-          GoalOrmEntity,
-          SessionOrmEntity,
-          SessionExerciseOrmEntity,
-          WorkoutLogOrmEntity,
-          SessionAnalysisOrmEntity,
-          UserFitnessProfileOrmEntity,
-        ],
-        synchronize: true,
-      }),
-      // Before initialize(): schema sync and every request use the serialized connection.
-      dataSourceFactory: serializedDataSourceFactory,
-    }),
+    DatabaseModule,
     ...(process.env.NODE_ENV === 'production'
       ? [
           ServeStaticModule.forRoot({
