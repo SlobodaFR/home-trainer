@@ -72,8 +72,11 @@ jobs:
       - name: Boot check (the container must start and stay healthy)
         run: |
           sh .github/scripts/docker-boot-check.sh --service home-trainer --image home-trainer:ci-${{ github.run_id }}-${{ github.run_attempt }} --rm-image \
+            --s3-stub minio \
             --volume /app/backend/data --path /healthz --expect /healthz=200 \
             --expect /api/profile=401 --expect /api/unknown=404 --forbid-ts \
             --env AUTH_SERVICE_URL=https://auth.example.test --env AUTH_CLIENT_ID=home-trainer \
             --env FRONTEND_URL=https://trainer.example.test --env OPENAI_API_KEY=sk-ci-dummy \
+            --env MINIO_ENDPOINT=http://minio:9000 --env MINIO_BUCKET=ci-dummy --env MINIO_REGION=us-east-1 --env MINIO_REPLICA_PATH=ci \
+            --env MINIO_ACCESS_KEY_ID=ci-dummy-user --env MINIO_SECRET_ACCESS_KEY=ci-dummy-password \
             --secret AUTH_CLIENT_SECRET --secret AUTH_WEBHOOK_SECRET --secret PSEUDONYM_SECRET
