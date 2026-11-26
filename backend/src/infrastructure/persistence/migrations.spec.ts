@@ -185,6 +185,12 @@ describe('database migrations', () => {
     await ds.destroy();
   });
 
+  it('refuses to revert the baseline (down would drop every table)', async () => {
+    await expect(new InitialSchema1795800000000().down()).rejects.toThrow(
+      'baseline migration: revert not supported, restore a backup',
+    );
+  });
+
   // forFeature() with an entity missing from ENTITIES would fail at boot with "No metadata".
   it('list every @Entity file of the entities folder in ENTITIES', async () => {
     const dir = join(__dirname, 'entities');

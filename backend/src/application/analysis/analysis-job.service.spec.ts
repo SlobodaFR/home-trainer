@@ -373,23 +373,27 @@ describe('AnalysisJobService', () => {
     });
   });
 
-  it.each([
-    ['session', { findById: null }],
-    ['goal', { goal: null }],
-  ] as const)(
-    'marks the analysis failed when the %s is gone',
-    async (_n, gone) => {
-      const { service, analysisRepo, sessionRepo, goalRepo, llm } = makeDeps();
-      if ('findById' in gone) sessionRepo.findById.mockResolvedValue(null);
-      else goalRepo.findActiveByUser.mockResolvedValue(null);
-      service.run('s-1', 'u-1', 'fr');
-      await new Promise((r) => setTimeout(r, 50));
-      expect(analysisRepo.update).toHaveBeenCalledWith('a-1', {
-        status: 'failed',
-      });
-      expect(llm.complete).not.toHaveBeenCalled();
-    },
-  );
+  it('marks the analysis failed when the session is gone', async () => {
+    const { service, analysisRepo, sessionRepo, llm } = makeDeps();
+    sessionRepo.findById.mockResolvedValue(null);
+    service.run('s-1', 'u-1', 'fr');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(analysisRepo.update).toHaveBeenCalledWith('a-1', {
+      status: 'failed',
+    });
+    expect(llm.complete).not.toHaveBeenCalled();
+  });
+
+  it('marks the analysis failed when the goal is gone', async () => {
+    const { service, analysisRepo, goalRepo, llm } = makeDeps();
+    goalRepo.findActiveByUser.mockResolvedValue(null);
+    service.run('s-1', 'u-1', 'fr');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(analysisRepo.update).toHaveBeenCalledWith('a-1', {
+      status: 'failed',
+    });
+    expect(llm.complete).not.toHaveBeenCalled();
+  });
 
   it('releases inFlight after success so the session can be re-run', async () => {
     const { repo } = statefulRepoFor();
@@ -475,6 +479,28 @@ describe('AnalysisJobService', () => {
         status: 'done',
         result: 'Great session!',
       });
+    });
+
+    it.each([
+      [1, 'Recovering 1 pending analysis'],
+      [2, 'Recovering 2 pending analyses'],
+    ])('logs the plural correctly for %i orphan(s)', async (count, message) => {
+      const log = vi
+        .spyOn(Logger.prototype, 'log')
+        .mockImplementation(() => undefined);
+      const { service } = makeDeps({
+        analysisRepo: {
+          findPending: vi
+            .fn()
+            .mockResolvedValue(
+              Array.from({ length: count }, () => mockAnalysis),
+            ),
+          findBySessionId: vi.fn().mockResolvedValue(mockAnalysis),
+        },
+      });
+      await service.recoverPending();
+      expect(log).toHaveBeenCalledWith(message);
+      log.mockRestore();
     });
 
     it('never throws when the lookup fails', async () => {

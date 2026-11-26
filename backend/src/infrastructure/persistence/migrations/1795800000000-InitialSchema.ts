@@ -10,7 +10,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * is byte-identical to a synchronize-built database.
  *
  * Only ever use the `queryRunner` passed in (never `dataSource.query`): migrations run on the
- * serialized connection. There is deliberately no CLI data source: `down()` drops the data.
+ * serialized connection. There is deliberately no CLI data source, and `down()` refuses to run: it would drop the data.
  */
 export class InitialSchema1795800000000 implements MigrationInterface {
   name = 'InitialSchema1795800000000';
@@ -51,16 +51,10 @@ export class InitialSchema1795800000000 implements MigrationInterface {
     );
   }
 
-  async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP TABLE IF EXISTS "exercises"`);
-    await queryRunner.query(`DROP TABLE IF EXISTS "goals"`);
-    await queryRunner.query(`DROP TABLE IF EXISTS "revoked_sessions"`);
-    await queryRunner.query(`DROP TABLE IF EXISTS "session_analyses"`);
-    await queryRunner.query(`DROP TABLE IF EXISTS "session_exercises"`);
-    await queryRunner.query(`DROP TABLE IF EXISTS "sessions"`);
-    await queryRunner.query(`DROP TABLE IF EXISTS "user_exercises"`);
-    await queryRunner.query(`DROP TABLE IF EXISTS "user_fitness_profiles"`);
-    await queryRunner.query(`DROP TABLE IF EXISTS "users"`);
-    await queryRunner.query(`DROP TABLE IF EXISTS "workout_logs"`);
+  // Reverting the baseline would drop every table, and the data with them.
+  down(): Promise<void> {
+    return Promise.reject(
+      new Error('baseline migration: revert not supported, restore a backup'),
+    );
   }
 }
