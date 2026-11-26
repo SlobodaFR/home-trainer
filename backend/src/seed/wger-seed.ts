@@ -1,6 +1,8 @@
 import 'reflect-metadata';
 import { DataSource, IsNull, Not, Repository } from 'typeorm';
+import { ENTITIES } from '../infrastructure/persistence/entities';
 import { ExerciseOrmEntity } from '../infrastructure/persistence/entities/exercise.orm-entity';
+import { MIGRATIONS } from '../infrastructure/persistence/migrations';
 import { serializeConnection } from '../infrastructure/persistence/serialized-connection';
 
 interface WgerListResponse<T> {
@@ -301,13 +303,25 @@ export async function runSeed(
   return 'seeded';
 }
 
-async function main(): Promise<void> {
-  const dataSource = new DataSource({
+/**
+ * Same entities and migrations as the application (never `synchronize`): the seed creates or adopts
+ * the schema through the reviewed migrations, so it can never rebuild a table on its own.
+ */
+export function createSeedDataSource(database: string): DataSource {
+  return new DataSource({
     type: 'better-sqlite3',
-    database: process.env.DATABASE_PATH ?? 'data/trainer.sqlite',
-    entities: [ExerciseOrmEntity],
-    synchronize: true,
+    database,
+    entities: ENTITIES,
+    synchronize: false,
+    migrations: MIGRATIONS,
+    migrationsRun: true,
   });
+}
+
+async function main(): Promise<void> {
+  const dataSource = createSeedDataSource(
+    process.env.DATABASE_PATH ?? 'data/trainer.sqlite',
+  );
   serializeConnection(dataSource);
   await dataSource.initialize();
   try {
