@@ -92,4 +92,44 @@ describe('OpenAILLMService timeout', () => {
     expect(error).toBeInstanceOf(Error);
     expect((error as Error).message).toBe('OpenAI request timed out');
   });
+
+  it('covers the body read: a body that stalls after the headers is aborted', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: string, init: RequestInit) => {
+        const body = new ReadableStream({
+          start(controller) {
+            init.signal?.addEventListener('abort', () =>
+              controller.error(new DOMException('aborted', 'AbortError')),
+            );
+          },
+        });
+        return Promise.resolve(new Response(body, { status: 200 }));
+      }),
+    );
+
+    const outcome = service()
+      .complete('s', 'u')
+      .catch((e: Error) => e);
+    await vi.advanceTimersByTimeAsync(OPENAI_TIMEOUT_MS + 1);
+
+    expect(((await outcome) as Error).message).toBe('OpenAI request timed out');
+  });
+
+  it('clears the timer once the call is over, on success and on failure', async () => {
+    vi.useFakeTimers();
+    mockFetch(
+      200,
+      JSON.stringify({ choices: [{ message: { content: 'ok' } }] }),
+    );
+    await service().complete('s', 'u');
+    expect(vi.getTimerCount()).toBe(0);
+
+    mockFetch(500, '{}');
+    await service()
+      .complete('s', 'u')
+      .catch(() => undefined);
+    expect(vi.getTimerCount()).toBe(0);
+  });
 });

@@ -71,7 +71,7 @@ export class AnalysisJobService {
       const pending = await this.analysisRepository.findPending();
       if (pending.length > 0) {
         this.logger.log(
-          `Recovering ${String(pending.length)} pending analysis`,
+          `Recovering ${String(pending.length)} pending ${pending.length === 1 ? 'analysis' : 'analyses'}`,
         );
         void this.replaySequentially(pending);
       }
