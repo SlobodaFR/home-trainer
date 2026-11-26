@@ -31,14 +31,25 @@ RUN npm prune --omit=dev \
 
 # ---------- Runtime ----------
 FROM node:26-bookworm-slim AS runtime
+ARG TARGETARCH
+ARG LITESTREAM_VERSION=0.3.13
 ENV NODE_ENV=production
 WORKDIR /app
+# Litestream : réplique la base SQLite vers MinIO (actif seulement si MINIO_BUCKET est défini, cf. entrypoint.sh).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
+    && curl -fsSL "https://github.com/benbjohnson/litestream/releases/download/v${LITESTREAM_VERSION}/litestream-v${LITESTREAM_VERSION}-linux-${TARGETARCH}.tar.gz" \
+       | tar -xz -C /usr/local/bin litestream \
+    && apt-get purge -y curl \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=backend-build /app/node_modules node_modules
 # Garde-fou : le compilateur TypeScript ne doit jamais atterrir dans l'image d'execution.
 RUN test ! -e node_modules/typescript && test ! -e node_modules/@typescript
 COPY --from=backend-build /app/backend/dist backend/dist
 COPY --from=backend-build /app/backend/package.json backend/package.json
 COPY backend/entrypoint.sh backend/entrypoint.sh
+COPY backend/litestream.yml backend/litestream.yml
 RUN mkdir -p /app/backend/data && chmod +x /app/backend/entrypoint.sh \
     && chown node:node /app/backend /app/backend/data
 EXPOSE 3000

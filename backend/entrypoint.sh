@@ -1,6 +1,17 @@
 #!/bin/sh
 set -e
 
+# Litestream (actif seulement si MINIO_BUCKET est défini) : restaure la base depuis MinIO si le fichier est absent
+# (volume perdu), puis réplique en continu en lançant l'app comme processus enfant. Sans MINIO_BUCKET : pas de Litestream.
+LITESTREAM_CONFIG="${LITESTREAM_CONFIG:-/app/backend/litestream.yml}"
+export DATABASE_PATH="${DATABASE_PATH:-data/trainer.sqlite}"
+if [ -n "${MINIO_BUCKET}" ]; then
+  echo "[entrypoint] Restoring database from MinIO replica (if any)…"
+  litestream restore -if-replica-exists -if-db-not-exists -config "$LITESTREAM_CONFIG" "$DATABASE_PATH"
+else
+  echo "[entrypoint] MINIO_BUCKET not set — skipping Litestream."
+fi
+
 # Le seed Wger appelle une API publique : il ne doit JAMAIS empêcher l'app de démarrer.
 # Base déjà complète : il sort tout de suite. Sinon (réseau, API lente) il avertit et l'app démarre
 # quand même ; le seed est tout-ou-rien et sera retenté au prochain démarrage.
@@ -20,4 +31,8 @@ if [ "$seed_ok" -ne 0 ]; then
 fi
 
 echo "[entrypoint] Starting app…"
+if [ -n "${MINIO_BUCKET}" ]; then
+  echo "[entrypoint] Starting Litestream replication…"
+  exec litestream replicate -exec "node dist/main.js" -config "$LITESTREAM_CONFIG"
+fi
 exec node dist/main.js
