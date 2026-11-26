@@ -23,6 +23,7 @@ import { UserExerciseOrmEntity } from './infrastructure/persistence/entities/use
 import { UserFitnessProfileOrmEntity } from './infrastructure/persistence/entities/user-fitness-profile.orm-entity';
 import { UserOrmEntity } from './infrastructure/persistence/entities/user.orm-entity';
 import { WorkoutLogOrmEntity } from './infrastructure/persistence/entities/workout-log.orm-entity';
+import { serializedDataSourceFactory } from './infrastructure/persistence/serialized-connection';
 import { createEnvSchema } from './infrastructure/config/env.schema';
 import { loggerParams } from './infrastructure/logging/logger.config';
 import { STATIC_EXCLUDE } from './interfaces/http/static-exclude';
@@ -64,6 +65,8 @@ import { TelemetryModule } from './telemetry/telemetry.module';
         ],
         synchronize: true,
       }),
+      // Before initialize(): schema sync and every request use the serialized connection.
+      dataSourceFactory: serializedDataSourceFactory,
     }),
     ...(process.env.NODE_ENV === 'production'
       ? [
