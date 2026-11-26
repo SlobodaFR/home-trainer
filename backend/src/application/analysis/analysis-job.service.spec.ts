@@ -244,4 +244,136 @@ describe('AnalysisJobService', () => {
     expect(update).toHaveBeenCalledWith('a-1', { status: 'failed' });
     warn.mockRestore();
   });
+
+  describe('with a stateful repository (real findBySessionId semantics)', () => {
+    function statefulRepo(initial: SessionAnalysis[] = []) {
+      const rows = new Map<string, SessionAnalysis>(
+        initial.map((r) => [r.sessionId, { ...r }]),
+      );
+      return {
+        rows,
+        repo: {
+          findBySessionId: vi.fn((sessionId: string) =>
+            Promise.resolve(rows.get(sessionId) ?? null),
+          ),
+          save: vi.fn((data: Omit<SessionAnalysis, 'id'>) => {
+            const row = {
+              ...data,
+              id: 'a-1',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+            rows.set(row.sessionId, row);
+            return Promise.resolve(row);
+          }),
+          update: vi.fn((id: string, patch: Partial<SessionAnalysis>) => {
+            for (const row of rows.values()) {
+              if (row.id === id) Object.assign(row, patch);
+            }
+            return Promise.resolve();
+          }),
+        },
+      };
+    }
+
+    it('retries after a first failure and ends failed after the second', async () => {
+      const warn = vi
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+      const { rows, repo } = statefulRepo();
+      const complete = vi.fn().mockRejectedValue(new Error('LLM down'));
+      const { service } = makeDeps({
+        analysisRepo: repo,
+        llm: { complete },
+      });
+      service.run('s-1', 'u-1', 'fr');
+      await new Promise((r) => setTimeout(r, 100));
+      expect(complete).toHaveBeenCalledTimes(2);
+      expect(rows.get('s-1')?.status).toBe('failed');
+      warn.mockRestore();
+    });
+
+    it('succeeds on the second attempt after a first failure', async () => {
+      const warn = vi
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+      const { rows, repo } = statefulRepo();
+      const complete = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('LLM down'))
+        .mockResolvedValue('Retried ok');
+      const { service } = makeDeps({
+        analysisRepo: repo,
+        llm: { complete },
+      });
+      service.run('s-1', 'u-1', 'fr');
+      await new Promise((r) => setTimeout(r, 100));
+      expect(rows.get('s-1')?.status).toBe('done');
+      expect(rows.get('s-1')?.result).toBe('Retried ok');
+      expect(repo.save).toHaveBeenCalledTimes(1);
+      warn.mockRestore();
+    });
+
+    it('picks up an analysis left pending (retry or crash) instead of skipping it', async () => {
+      const { rows, repo } = statefulRepo([{ ...mockAnalysis, retryCount: 1 }]);
+      const { service } = makeDeps({ analysisRepo: repo });
+      service.run('s-1', 'u-1', 'fr');
+      await new Promise((r) => setTimeout(r, 50));
+      expect(repo.save).not.toHaveBeenCalled();
+      expect(rows.get('s-1')?.status).toBe('done');
+    });
+
+    it.each(['done', 'failed'] as const)(
+      'leaves a %s analysis alone',
+      async (status) => {
+        const { rows, repo } = statefulRepo([{ ...mockAnalysis, status }]);
+        const { service, llm } = makeDeps({ analysisRepo: repo });
+        service.run('s-1', 'u-1', 'fr');
+        await new Promise((r) => setTimeout(r, 50));
+        expect(llm.complete).not.toHaveBeenCalled();
+        expect(rows.get('s-1')?.status).toBe(status);
+      },
+    );
+
+    it('does not run the same session twice concurrently', async () => {
+      const { repo } = statefulRepo();
+      const { service, llm } = makeDeps({ analysisRepo: repo });
+      service.run('s-1', 'u-1', 'fr');
+      service.run('s-1', 'u-1', 'fr');
+      await new Promise((r) => setTimeout(r, 100));
+      expect(llm.complete).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('recoverPending', () => {
+    it('re-runs every analysis found pending at boot', async () => {
+      const { service, analysisRepo, llm } = makeDeps({
+        analysisRepo: {
+          findPending: vi.fn().mockResolvedValue([mockAnalysis]),
+          findBySessionId: vi.fn().mockResolvedValue(mockAnalysis),
+        },
+      });
+      await service.recoverPending();
+      await new Promise((r) => setTimeout(r, 50));
+      expect(analysisRepo.findPending).toHaveBeenCalled();
+      expect(llm.complete).toHaveBeenCalledTimes(1);
+      expect(analysisRepo.update).toHaveBeenCalledWith('a-1', {
+        status: 'done',
+        result: 'Great session!',
+      });
+    });
+
+    it('never throws when the lookup fails', async () => {
+      const warn = vi
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+      const { service } = makeDeps({
+        analysisRepo: {
+          findPending: vi.fn().mockRejectedValue(new Error('db down')),
+        },
+      });
+      await expect(service.recoverPending()).resolves.toBeUndefined();
+      warn.mockRestore();
+    });
+  });
 });

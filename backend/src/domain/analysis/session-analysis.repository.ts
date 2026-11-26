@@ -2,6 +2,7 @@ import { SessionAnalysis } from './session-analysis';
 
 export abstract class SessionAnalysisRepository {
   abstract findBySessionId(sessionId: string): Promise<SessionAnalysis | null>;
+  abstract findPending(): Promise<SessionAnalysis[]>;
   abstract save(
     data: Omit<SessionAnalysis, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<SessionAnalysis>;

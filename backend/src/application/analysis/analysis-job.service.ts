@@ -10,6 +10,8 @@ import { ProfileRepository } from '../../domain/profile/profile.repository';
 import { pseudonymize } from '../../domain/shared/pseudonymize';
 import { sanitizeErrorText } from '../../domain/shared/sanitize-error-text';
 
+const DEFAULT_LOCALE = 'fr';
+
 /** Tracks progress so an escaped error can be logged and the analysis marked failed. */
 interface JobState {
   analysisId?: string;
@@ -19,6 +21,8 @@ interface JobState {
 @Injectable()
 export class AnalysisJobService {
   private readonly logger = new Logger(AnalysisJobService.name);
+  /** Sessions with a job running in this process: a second run() must not duplicate the LLM call. */
+  private readonly inFlight = new Set<string>();
 
   constructor(
     private readonly analysisRepository: SessionAnalysisRepository,
@@ -32,13 +36,37 @@ export class AnalysisJobService {
   ) {}
 
   run(sessionId: string, userId: string, locale: string): void {
+    if (this.inFlight.has(sessionId)) return;
+    this.inFlight.add(sessionId);
     const state: JobState = {};
-    this.execute(sessionId, userId, locale, 0, state).catch(
-      (error: unknown) => {
+    this.execute(sessionId, userId, locale, 0, state)
+      .catch((error: unknown) => {
         this.logFailure(sessionId, userId, state.attempt ?? 0, error);
         void this.markFailed(state.analysisId);
-      },
-    );
+      })
+      .finally(() => this.inFlight.delete(sessionId));
+  }
+
+  /**
+   * Nothing runs yet when the process boots, so any analysis still pending was orphaned
+   * (crash, deploy mid-job, or the former retry that never ran). Never throws.
+   */
+  async recoverPending(): Promise<void> {
+    try {
+      const pending = await this.analysisRepository.findPending();
+      for (const analysis of pending) {
+        this.run(analysis.sessionId, analysis.userId, DEFAULT_LOCALE);
+      }
+      if (pending.length > 0) {
+        this.logger.log(`Recovered ${String(pending.length)} pending analysis`);
+      }
+    } catch (error) {
+      const reason =
+        error instanceof Error
+          ? `${error.constructor.name}: ${sanitizeErrorText(error.message)}`
+          : 'non-error thrown';
+      this.logger.warn(`Pending analysis recovery failed: ${reason}`);
+    }
   }
 
   /** Best effort: the caller is already handling a failure, this must never reject. */
@@ -60,15 +88,24 @@ export class AnalysisJobService {
   ): Promise<void> {
     state.attempt = attempt;
     const existing = await this.analysisRepository.findBySessionId(sessionId);
-    if (existing) return;
+    // done/failed are final here (a manual retry flips the row back to pending first);
+    // a pending row is ours to (re)run: the recursive retry, a manual retry or an orphan.
+    if (existing && existing.status !== 'pending') return;
 
-    const analysis = await this.analysisRepository.save({
-      sessionId,
-      userId,
-      status: 'pending',
-      result: null,
-      retryCount: attempt,
-    });
+    const analysis = existing
+      ? { ...existing, retryCount: attempt }
+      : await this.analysisRepository.save({
+          sessionId,
+          userId,
+          status: 'pending',
+          result: null,
+          retryCount: attempt,
+        });
+    if (existing && existing.retryCount !== attempt) {
+      await this.analysisRepository.update(existing.id, {
+        retryCount: attempt,
+      });
+    }
     state.analysisId = analysis.id;
 
     try {
