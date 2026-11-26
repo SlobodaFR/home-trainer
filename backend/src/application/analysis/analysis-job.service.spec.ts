@@ -262,7 +262,7 @@ describe('AnalysisJobService', () => {
               id: 'a-1',
               createdAt: new Date(),
               updatedAt: new Date(),
-            } as SessionAnalysis;
+            };
             rows.set(row.sessionId, row);
             return Promise.resolve(row);
           }),
