@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { DataSource, IsNull, Not, Repository } from 'typeorm';
 import { ExerciseOrmEntity } from '../infrastructure/persistence/entities/exercise.orm-entity';
+import { serializeConnection } from '../infrastructure/persistence/serialized-connection';
 
 interface WgerListResponse<T> {
   count: number;
@@ -307,6 +308,7 @@ async function main(): Promise<void> {
     entities: [ExerciseOrmEntity],
     synchronize: true,
   });
+  serializeConnection(dataSource);
   await dataSource.initialize();
   try {
     await runSeed(dataSource);
