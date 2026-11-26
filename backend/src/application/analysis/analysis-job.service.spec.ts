@@ -112,6 +112,34 @@ function makeDeps(
   };
 }
 
+function statefulRepoFor() {
+  const rows = new Map<string, SessionAnalysis>();
+  return {
+    repo: {
+      rows,
+      findBySessionId: vi.fn((id: string) =>
+        Promise.resolve(rows.get(id) ?? null),
+      ),
+      save: vi.fn((data: Omit<SessionAnalysis, 'id'>) => {
+        const row = {
+          ...data,
+          id: 'a-1',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        rows.set(row.sessionId, row);
+        return Promise.resolve(row);
+      }),
+      update: vi.fn((id: string, patch: Partial<SessionAnalysis>) => {
+        for (const row of rows.values()) {
+          if (row.id === id) Object.assign(row, patch);
+        }
+        return Promise.resolve();
+      }),
+    },
+  };
+}
+
 describe('AnalysisJobService', () => {
   it('run() returns void immediately without awaiting', () => {
     const { service } = makeDeps();
@@ -156,7 +184,7 @@ describe('AnalysisJobService', () => {
     });
   });
 
-  it('skips if analysis already exists for sessionId', async () => {
+  it('does not create a second row when one already exists for the session', async () => {
     const { service, analysisRepo } = makeDeps({
       analysisRepo: {
         findBySessionId: vi.fn().mockResolvedValue(mockAnalysis),
@@ -345,7 +373,93 @@ describe('AnalysisJobService', () => {
     });
   });
 
+  it.each([
+    ['session', { findById: null }],
+    ['goal', { goal: null }],
+  ] as const)(
+    'marks the analysis failed when the %s is gone',
+    async (_n, gone) => {
+      const { service, analysisRepo, sessionRepo, goalRepo, llm } = makeDeps();
+      if ('findById' in gone) sessionRepo.findById.mockResolvedValue(null);
+      else goalRepo.findActiveByUser.mockResolvedValue(null);
+      service.run('s-1', 'u-1', 'fr');
+      await new Promise((r) => setTimeout(r, 50));
+      expect(analysisRepo.update).toHaveBeenCalledWith('a-1', {
+        status: 'failed',
+      });
+      expect(llm.complete).not.toHaveBeenCalled();
+    },
+  );
+
+  it('releases inFlight after success so the session can be re-run', async () => {
+    const { repo } = statefulRepoFor();
+    const { service, llm } = makeDeps({ analysisRepo: repo });
+    service.run('s-1', 'u-1', 'fr');
+    await new Promise((r) => setTimeout(r, 50));
+    repo.rows.clear();
+    service.run('s-1', 'u-1', 'fr');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(llm.complete).toHaveBeenCalledTimes(2);
+  });
+
+  it('releases inFlight after a failure so the session can be re-run', async () => {
+    const warn = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const { repo } = statefulRepoFor();
+    const complete = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('down'))
+      .mockRejectedValueOnce(new Error('down'))
+      .mockResolvedValue('ok');
+    const { service } = makeDeps({ analysisRepo: repo, llm: { complete } });
+    service.run('s-1', 'u-1', 'fr');
+    await new Promise((r) => setTimeout(r, 50));
+    repo.rows.clear();
+    service.run('s-1', 'u-1', 'fr');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(complete).toHaveBeenCalledTimes(3);
+    warn.mockRestore();
+  });
+
   describe('recoverPending', () => {
+    it('recovers pending analyses one at a time, never in parallel', async () => {
+      const second = { ...mockAnalysis, id: 'a-2', sessionId: 's-2' };
+      let active = 0;
+      let maxActive = 0;
+      const complete = vi.fn().mockImplementation(async () => {
+        active++;
+        maxActive = Math.max(maxActive, active);
+        await new Promise((r) => setTimeout(r, 20));
+        active--;
+        return 'ok';
+      });
+      const { service } = makeDeps({
+        analysisRepo: {
+          findPending: vi.fn().mockResolvedValue([mockAnalysis, second]),
+          findBySessionId: vi.fn((id: string) =>
+            Promise.resolve(id === 's-1' ? mockAnalysis : second),
+          ),
+        },
+        llm: { complete },
+      });
+      await service.recoverPending();
+      await vi.waitFor(() => expect(complete).toHaveBeenCalledTimes(2));
+      expect(maxActive).toBe(1);
+    });
+
+    it('returns without waiting for the LLM calls (boot is not blocked)', async () => {
+      const complete = vi.fn().mockReturnValue(new Promise(() => undefined));
+      const { service } = makeDeps({
+        analysisRepo: {
+          findPending: vi.fn().mockResolvedValue([mockAnalysis]),
+          findBySessionId: vi.fn().mockResolvedValue(mockAnalysis),
+        },
+        llm: { complete },
+      });
+      await expect(service.recoverPending()).resolves.toBeUndefined();
+    });
+
     it('re-runs every analysis found pending at boot', async () => {
       const { service, analysisRepo, llm } = makeDeps({
         analysisRepo: {

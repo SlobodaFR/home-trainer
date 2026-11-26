@@ -1,5 +1,5 @@
 import { ConfigService } from '@nestjs/config';
-import { OpenAILLMService } from './openai-llm.service';
+import { OPENAI_TIMEOUT_MS, OpenAILLMService } from './openai-llm.service';
 
 function service(): OpenAILLMService {
   return new OpenAILLMService(
@@ -61,5 +61,35 @@ describe('OpenAILLMService errors', () => {
     );
 
     await expect(service().complete('s', 'u')).resolves.toBe('ok');
+  });
+});
+
+describe('OpenAILLMService timeout', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('aborts a call that never answers and rejects with a clear error', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () =>
+              reject(new DOMException('aborted', 'AbortError')),
+            );
+          }),
+      ),
+    );
+
+    const outcome = service()
+      .complete('s', 'u')
+      .catch((e: Error) => e);
+    await vi.advanceTimersByTimeAsync(OPENAI_TIMEOUT_MS + 1);
+
+    const error = await outcome;
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe('OpenAI request timed out');
   });
 });

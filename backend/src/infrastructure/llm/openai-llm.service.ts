@@ -28,6 +28,9 @@ interface OpenAIResponse {
   choices: { message: { content: string } }[];
 }
 
+/** A hung call would keep the analysis `pending` until the next restart. */
+export const OPENAI_TIMEOUT_MS = 60_000;
+
 @Injectable()
 export class OpenAILLMService extends LLMService {
   private readonly apiKey: string;
@@ -38,8 +41,28 @@ export class OpenAILLMService extends LLMService {
   }
 
   async complete(systemPrompt: string, userPrompt: string): Promise<string> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+    try {
+      return await this.request(systemPrompt, userPrompt, controller.signal);
+    } catch (error) {
+      if (controller.signal.aborted) {
+        throw new Error('OpenAI request timed out', { cause: error });
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private async request(
+    systemPrompt: string,
+    userPrompt: string,
+    signal: AbortSignal,
+  ): Promise<string> {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
+      signal,
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.apiKey}`,

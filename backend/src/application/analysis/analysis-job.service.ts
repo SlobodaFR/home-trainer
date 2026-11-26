@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PromptBuilderService } from './prompt-builder.service';
 import { LLMService } from '../../domain/analysis/llm.service';
+import { SessionAnalysis } from '../../domain/analysis/session-analysis';
 import { SessionAnalysisRepository } from '../../domain/analysis/session-analysis.repository';
 import { WorkoutLogRepository } from '../../domain/execution/workout-log.repository';
 import { GoalRepository } from '../../domain/planning/goal.repository';
@@ -36,29 +37,43 @@ export class AnalysisJobService {
   ) {}
 
   run(sessionId: string, userId: string, locale: string): void {
+    void this.start(sessionId, userId, locale);
+  }
+
+  /** Resolves once the job is over (never rejects); resolves at once if one is already running. */
+  private async start(
+    sessionId: string,
+    userId: string,
+    locale: string,
+  ): Promise<void> {
     if (this.inFlight.has(sessionId)) return;
     this.inFlight.add(sessionId);
     const state: JobState = {};
-    this.execute(sessionId, userId, locale, 0, state)
-      .catch((error: unknown) => {
-        this.logFailure(sessionId, userId, state.attempt ?? 0, error);
-        void this.markFailed(state.analysisId);
-      })
-      .finally(() => this.inFlight.delete(sessionId));
+    try {
+      await this.execute(sessionId, userId, locale, 0, state);
+    } catch (error: unknown) {
+      this.logFailure(sessionId, userId, state.attempt ?? 0, error);
+      await this.markFailed(state.analysisId);
+    } finally {
+      this.inFlight.delete(sessionId);
+    }
   }
 
   /**
    * Nothing runs yet when the process boots, so any analysis still pending was orphaned
    * (crash, deploy mid-job, or the former retry that never ran). Never throws.
+   * Orphans are replayed one after the other (SQLite writer, OpenAI rate limits) in the
+   * background: boot is not held up by the LLM calls. They restart at retryCount 0, i.e. with
+   * two fresh attempts: deliberate, an interrupted attempt is not a failed one.
    */
   async recoverPending(): Promise<void> {
     try {
       const pending = await this.analysisRepository.findPending();
-      for (const analysis of pending) {
-        this.run(analysis.sessionId, analysis.userId, DEFAULT_LOCALE);
-      }
       if (pending.length > 0) {
-        this.logger.log(`Recovered ${String(pending.length)} pending analysis`);
+        this.logger.log(
+          `Recovering ${String(pending.length)} pending analysis`,
+        );
+        void this.replaySequentially(pending);
       }
     } catch (error) {
       const reason =
@@ -66,6 +81,12 @@ export class AnalysisJobService {
           ? `${error.constructor.name}: ${sanitizeErrorText(error.message)}`
           : 'non-error thrown';
       this.logger.warn(`Pending analysis recovery failed: ${reason}`);
+    }
+  }
+
+  private async replaySequentially(pending: SessionAnalysis[]): Promise<void> {
+    for (const analysis of pending) {
+      await this.start(analysis.sessionId, analysis.userId, DEFAULT_LOCALE);
     }
   }
 
