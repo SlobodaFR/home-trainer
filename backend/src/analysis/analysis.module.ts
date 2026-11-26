@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, OnApplicationBootstrap } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AnalysisJobService } from '../application/analysis/analysis-job.service';
 import { GetAnalysisUseCase } from '../application/analysis/get-analysis.use-case';
@@ -52,4 +52,10 @@ import { ProfileModule } from '../profile/profile.module';
   ],
   exports: [AnalysisJobService],
 })
-export class AnalysisModule {}
+export class AnalysisModule implements OnApplicationBootstrap {
+  constructor(private readonly analysisJobService: AnalysisJobService) {}
+
+  async onApplicationBootstrap(): Promise<void> {
+    await this.analysisJobService.recoverPending();
+  }
+}

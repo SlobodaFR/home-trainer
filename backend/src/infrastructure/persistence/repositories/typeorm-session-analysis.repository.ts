@@ -23,6 +23,11 @@ export class TypeOrmSessionAnalysisRepository extends SessionAnalysisRepository 
     return this.toDomain(entity);
   }
 
+  async findPending(): Promise<SessionAnalysis[]> {
+    const entities = await this.repo.find({ where: { status: 'pending' } });
+    return entities.map((entity) => this.toDomain(entity));
+  }
+
   async save(
     data: Omit<SessionAnalysis, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<SessionAnalysis> {
