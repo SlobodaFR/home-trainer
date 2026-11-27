@@ -76,7 +76,7 @@ interfaces/http/
 
 **Error codes**: `NotFoundException` → 404, `ConflictException` → 409, class-validator `ValidationPipe` → 400.
 
-**Database**: SQLite via `better-sqlite3`, `synchronize: true` (schema auto-migrated). DB file path from `DATABASE_PATH` env var.
+**Database**: SQLite via `better-sqlite3`, DB file path from `DATABASE_PATH` env var. `synchronize: false`: the schema changes only through explicit migrations (`backend/src/infrastructure/persistence/migrations/`, listed by hand in `MIGRATIONS`, run at boot with `migrationsRun: true`). Entities are listed explicitly in `ENTITIES` (`persistence/entities/index.ts`). Any entity change needs a new migration with a timestamp above the last one (baseline `1795800000000`), appended to `MIGRATIONS`; `migrations.spec.ts` fails otherwise. `SchemaGuard` refuses to boot if the database differs from the entities (fix: redeploy the previous image, never edit the prod schema by hand). The baseline migration's `down()` refuses to run: restore a backup instead of reverting. Connections go through `serializedDataSourceFactory`: inside a transaction, use the transaction's manager only.
 
 ### Feature flags (home-features)
 
