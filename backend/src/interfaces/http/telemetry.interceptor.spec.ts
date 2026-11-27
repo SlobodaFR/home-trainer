@@ -51,6 +51,14 @@ class HealthController {
   }
 }
 
+@Controller('version')
+class VersionController {
+  @Get()
+  version(): string {
+    return 'ok';
+  }
+}
+
 @Controller('healthz')
 class RuntimeHealthController {
   @Get()
@@ -82,6 +90,7 @@ describe('HTTP telemetry', () => {
         ExercisesController,
         HealthController,
         RuntimeHealthController,
+        VersionController,
       ],
       providers: [
         { provide: Telemetry, useValue: telemetry },
@@ -94,7 +103,7 @@ describe('HTTP telemetry', () => {
       logger: false,
     });
     // Same prefix as main.ts.
-    app.setGlobalPrefix('api', { exclude: ['healthz'] });
+    app.setGlobalPrefix('api', { exclude: ['healthz', 'version'] });
     await app.init();
   });
 
@@ -155,6 +164,12 @@ describe('HTTP telemetry', () => {
 
   it('does not report /healthz (polled by the Docker healthcheck every 30 s)', async () => {
     await request(app.getHttpServer()).get('/healthz').expect(200);
+
+    expect(telemetry.captured).toEqual([]);
+  });
+
+  it('does not report /version (public release identity, cost amplifier)', async () => {
+    await request(app.getHttpServer()).get('/version').expect(200);
 
     expect(telemetry.captured).toEqual([]);
   });

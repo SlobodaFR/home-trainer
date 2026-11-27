@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
+import { buildInfo } from './infrastructure/observability/build-info';
 import { applySecurityHeaders } from './interfaces/http/security-headers';
 import { applyTrustProxy } from './interfaces/http/throttling';
 import { setupSwagger } from './interfaces/http/swagger';
@@ -19,7 +20,8 @@ async function bootstrap(): Promise<void> {
   // First middleware: every response (API, SPA files, /api/docs) gets the security headers.
   applySecurityHeaders(app, { authBaseUrl: process.env.AUTH_SERVICE_URL });
   applyTrustProxy(app, process.env.TRUST_PROXY_HOPS);
-  app.setGlobalPrefix('api', { exclude: ['healthz'] });
+  // /healthz (internal) and /version (public release identity) stay at the root.
+  app.setGlobalPrefix('api', { exclude: ['healthz', 'version'] });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors({
     origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
@@ -30,6 +32,10 @@ async function bootstrap(): Promise<void> {
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000;
   await app.listen(port);
+  const { version, commit } = buildInfo();
+  app
+    .get(Logger)
+    .log(`home-trainer started version=${version} commit=${commit}`);
 }
 
 void bootstrap();

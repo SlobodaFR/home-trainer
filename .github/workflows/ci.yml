@@ -73,7 +73,7 @@ jobs:
         run: |
           sh .github/scripts/docker-boot-check.sh --service home-trainer --image home-trainer:ci-${{ github.run_id }}-${{ github.run_attempt }} --rm-image \
             --s3-stub minio \
-            --volume /app/backend/data --path /healthz --expect /healthz=200 \
+            --volume /app/backend/data --path /healthz --expect /healthz=200 --expect /version=200 \
             --expect /api/profile=401 --expect /api/unknown=404 --forbid-ts \
             --env AUTH_SERVICE_URL=https://auth.example.test --env AUTH_CLIENT_ID=home-trainer \
             --env FRONTEND_URL=https://trainer.example.test --env OPENAI_API_KEY=sk-ci-dummy \
