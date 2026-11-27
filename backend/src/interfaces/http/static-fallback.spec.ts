@@ -16,6 +16,14 @@ class HealthController {
   }
 }
 
+@Controller('version')
+class VersionController {
+  @Get()
+  version(): { version: string } {
+    return { version: 'dev' };
+  }
+}
+
 // Guards against a path-to-regexp / serve-static bump silently turning API 404s into index.html.
 describe('SPA fallback exclusions (real ServeStatic setup)', () => {
   let app: NestExpressApplication;
@@ -31,13 +39,13 @@ describe('SPA fallback exclusions (real ServeStatic setup)', () => {
           exclude: STATIC_EXCLUDE,
         }),
       ],
-      controllers: [HealthController],
+      controllers: [HealthController, VersionController],
     })
     class TestAppModule {}
     app = await NestFactory.create<NestExpressApplication>(TestAppModule, {
       logger: false,
     });
-    app.setGlobalPrefix('api', { exclude: ['healthz'] });
+    app.setGlobalPrefix('api', { exclude: ['healthz', 'version'] });
     await app.init();
   });
 
@@ -58,6 +66,12 @@ describe('SPA fallback exclusions (real ServeStatic setup)', () => {
 
   it('still serves the healthz controller', async () => {
     await request(app.getHttpServer()).get('/healthz').expect(200);
+  });
+
+  it('still serves the version controller, not the SPA', async () => {
+    const res = await request(app.getHttpServer()).get('/version').expect(200);
+
+    expect(res.body).toEqual({ version: 'dev' });
   });
 
   it('still serves the SPA for client-side routes', async () => {

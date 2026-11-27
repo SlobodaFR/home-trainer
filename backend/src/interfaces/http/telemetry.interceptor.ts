@@ -13,6 +13,8 @@ import { routeOf } from './route-of';
 const UNREPORTED_ROUTES = new Set([
   // Docker healthcheck, every 30 s: high volume, no debugging value.
   '/healthz',
+  // Public release identity (convention harnais release-versioning): no auth, one event per call would be a cost amplifier.
+  '/version',
   // Public, unauthenticated DB ping beside /healthz, meant for external probes: polled, no debugging value, and a cost amplifier.
   '/api/health',
 ]);
